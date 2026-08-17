@@ -114,8 +114,8 @@
   /* TABS (top) — persistent, DoorDash-style segmented control */
   .tabbar{
     display:flex;
-    gap:20px;
-    padding:6px 20px 0;
+    gap:6px;
+    padding:14px 20px 14px;
     overflow-x:auto;
     scrollbar-width:none;
     background:var(--card);
@@ -127,21 +127,21 @@
   .tabbar::-webkit-scrollbar{display:none;}
   .tabbtn{
     font-family:'Inter', sans-serif;
-    font-weight:600;
-    font-size:13.5px;
-    letter-spacing:0.01em;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
     color:var(--muted);
-    background:transparent;
+    background:var(--bg);
     border:none;
-    border-bottom:2px solid transparent;
-    padding:12px 2px 10px;
+    padding:10px 16px;
+    border-radius:999px;
     cursor:pointer;
     white-space:nowrap;
   }
   .tabbtn.active{
-    color:var(--ink);
-    border-bottom:2px solid var(--red);
-    font-weight:700;
+    color:#fff;
+    background:var(--red);
   }
 
   .content{ padding:22px 20px 10px; }
