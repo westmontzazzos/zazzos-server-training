@@ -836,6 +836,64 @@
     .print-doc{ font-size:12px; }
   }
 
+  /* Custom calendar dropdown (replaces native date input) */
+  .cal-dropdown{
+    background:var(--card);
+    border-radius:14px;
+    box-shadow:var(--card-shadow);
+    padding:14px;
+    margin:-8px 0 14px;
+  }
+  .cal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .cal-title{
+    font-family:'Libre Baskerville',serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .cal-nav{
+    background:var(--bg);
+    border:none;
+    border-radius:8px;
+    width:32px; height:32px;
+    font-size:18px;
+    color:var(--red);
+    cursor:pointer;
+  }
+  .cal-weekdays{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:700;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:2px;
+  }
+  .cal-cell{
+    aspect-ratio:1;
+    border:none;
+    background:transparent;
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .cal-cell:hover{ background:var(--bg); }
+  .cal-cell.selected{ background:var(--red); color:#fff; font-weight:700; }
+  .cal-cell.empty{ cursor:default; }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -865,7 +923,9 @@ let state = {
   results: null,      // fetched submissions for the Results tab
   resultsLoading: false,
   trainees: null,
-  traineesLoading: false
+  traineesLoading: false,
+  activeHires: null,
+  activeHiresLoading: false
 };
 
 // ---------------- FOCUSED TEST-LINK MODE ----------------
@@ -942,13 +1002,13 @@ async function signInTrainee(name, startDate){
         'Content-Type':'application/json',
         'Prefer':'return=representation'
       },
-      body: JSON.stringify({ name: name.trim(), start_date: startDate })
+      body: JSON.stringify({ name: name.trim(), start_date: startDate, role: state.role, status: 'active' })
     });
     if(res.ok){
       const rows = await res.json();
       trainee = { id: rows[0].id, name: rows[0].name, start_date: rows[0].start_date };
-      saveTraineeLocal();
-      state.tab = 'schedule';
+      state.tab = 'active-hires';
+      state.activeHires = null;
     } else {
       const err = await res.json().catch(()=>({}));
       signInError = err.message || `Sign-in failed (${res.status}). Please try again in a moment.`;
@@ -961,7 +1021,7 @@ async function signInTrainee(name, startDate){
 function signOutTrainee(){
   trainee = null;
   try{ localStorage.removeItem(TRAINEE_KEY); }catch(e){}
-  state.tab = 'home';
+  state.tab = 'active-hires';
   render();
 }
 async function syncTraineeProgress(){
@@ -1601,13 +1661,13 @@ function render(){
     </div>
     <div class="zazzos-word">Zazzo's</div>`;
 
-  if(trainee && state.role==='server'){
+  if(trainee){
     const totalTasks = totalTaskCount();
     const done = doneTaskCount();
     const overallPct = Math.round((done/totalTasks)*100);
     html += `
     <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
-    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">not you?</a></div>
+    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)}</div>
     <div class="progress-row">
       ${[1,2,3,4].map(n=>{
         const {total,done:dn} = dayDone(n);
@@ -1621,7 +1681,7 @@ function render(){
     <div class="brand-sub">Bar menu reference and the specialty-drinks test.</div>`;
   } else {
     html += `<h1 class="brand">Server Training</h1>
-    <div class="brand-sub">Browsing the reference manual — no trainee record needed for this.</div>`;
+    <div class="brand-sub">Pick an active new hire to view their schedule, tests, and results.</div>`;
   }
 
   html += `
@@ -1630,6 +1690,8 @@ function render(){
   <div class="content">
   `;
 
+  if(state.tab==='active-hires') html += renderActiveHires();
+  if(state.tab==='trainee-hub') html += renderTraineeHub();
   if(state.tab==='schedule') html += renderSchedule();
   if(state.tab==='guides') html += renderAccordionList(GUIDES, "These are the exact steps for the things that come up on every shift — ringing in an order, enrolling someone in loyalty, splitting a check. Come back to this tab as often as you need to.");
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS, "Zazzo's runs three ongoing perks programs — VIP, Text Club, and Pizza Club. Guests will ask about all three, so here's how each one works and how to redeem it.");
@@ -1706,49 +1768,14 @@ function renderBartenderHub(){
         <div class="ht-icon">🧑‍🍳</div>
         <div class="ht-body">
           <div class="ht-title">Start a New Hire</div>
-          <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+          <div class="ht-sub">Enter a name and start date to add them to Active New Hires.</div>
         </div>
       </button>
-      <button class="home-tile" data-tab="schedule">
-        <div class="ht-icon">📋</div>
+      <button class="home-tile" data-tab="active-hires">
+        <div class="ht-icon">👥</div>
         <div class="ht-body">
-          <div class="ht-title">Schedule</div>
-          <div class="ht-sub">The four-day plan, day by day, with checklists.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="programs">
-        <div class="ht-icon">🎟️</div>
-        <div class="ht-body">
-          <div class="ht-title">Programs</div>
-          <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="guides">
-        <div class="ht-icon">🧾</div>
-        <div class="ht-body">
-          <div class="ht-title">POS Guides</div>
-          <div class="ht-sub">Step-by-step for entering orders, loyalty, splitting checks.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="bar-guide">
-        <div class="ht-icon">🍷</div>
-        <div class="ht-body">
-          <div class="ht-title">Drinks Guide</div>
-          <div class="ht-sub">Beer, wine, spirits, and specialty drinks on the bar menu.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="testing">
-        <div class="ht-icon">📝</div>
-        <div class="ht-body">
-          <div class="ht-title">Testing</div>
-          <div class="ht-sub">Test Prep, Study Guide, sending tests — plus the specialty-drinks test.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="results">
-        <div class="ht-icon">📊</div>
-        <div class="ht-body">
-          <div class="ht-title">View Results</div>
-          <div class="ht-sub">See submitted tests and trainee progress.</div>
+          <div class="ht-title">Active New Hires</div>
+          <div class="ht-sub">Everyone currently in training — tap a name for their schedule, tests, and results.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="print">
@@ -1791,42 +1818,14 @@ function renderHome(){
         <div class="ht-icon">🧑‍🍳</div>
         <div class="ht-body">
           <div class="ht-title">Start a New Hire</div>
-          <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+          <div class="ht-sub">Enter a name and start date to add them to Active New Hires.</div>
         </div>
       </button>
-      <button class="home-tile" data-tab="schedule">
-        <div class="ht-icon">📋</div>
+      <button class="home-tile" data-tab="active-hires">
+        <div class="ht-icon">👥</div>
         <div class="ht-body">
-          <div class="ht-title">Schedule</div>
-          <div class="ht-sub">The four-day plan, day by day, with checklists.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="programs">
-        <div class="ht-icon">🎟️</div>
-        <div class="ht-body">
-          <div class="ht-title">Programs</div>
-          <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="guides">
-        <div class="ht-icon">🧾</div>
-        <div class="ht-body">
-          <div class="ht-title">POS Guides</div>
-          <div class="ht-sub">Step-by-step for entering orders, loyalty, splitting checks.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="testing">
-        <div class="ht-icon">📝</div>
-        <div class="ht-body">
-          <div class="ht-title">Testing</div>
-          <div class="ht-sub">Test Prep, Study Guide, and sending tests — all in one place.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="results">
-        <div class="ht-icon">📊</div>
-        <div class="ht-body">
-          <div class="ht-title">View Results</div>
-          <div class="ht-sub">See submitted tests and trainee progress.</div>
+          <div class="ht-title">Active New Hires</div>
+          <div class="ht-sub">Everyone currently in training — tap a name for their schedule, tests, and results.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="print">
@@ -1840,7 +1839,12 @@ function renderHome(){
   </div>`;
 }
 
+let calOpen = false;
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth();
+
 function renderSignInGate(){
+  const hasDate = isValidDateStr(signInDraftDate);
   return `<div class="focused-wrap">
     <div class="focused-head">
       <div class="eyebrow" style="margin-bottom:10px;">
@@ -1853,11 +1857,35 @@ function renderSignInGate(){
     <div class="gate-card">
       <div class="ticket-obj" style="margin-bottom:0;">Enter the trainee's name and start date to begin. (The trainee can fill this in themselves, or a manager can enter it for them.)</div>
       <input class="name-input" id="signin-name" type="text" placeholder="Trainee's full name" value="${escapeHtml(signInDraftName)}" style="margin-top:14px;">
-      <input class="name-input" id="signin-startdate" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" value="${escapeHtml(signInDraftDate)}">
-      <div style="font-size:12px; color:var(--muted); margin:-8px 0 14px;">Format: MM/DD/YYYY</div>
+      <button type="button" class="name-input" id="signin-startdate-btn" style="text-align:left; cursor:pointer; color:${hasDate?'var(--ink)':'var(--muted)'};">${hasDate ? signInDraftDate : 'Select date'} 📅</button>
+      ${calOpen ? renderCalendarDropdown() : ''}
       ${signInError ? `<div class="callout" style="background:var(--badge-red-bg); color:var(--badge-red-fg);">${escapeHtml(signInError)}</div>` : ''}
-      <button class="start-btn" id="signin-btn" ${(signInDraftName.trim() && isValidDateStr(signInDraftDate)) ? '' : 'disabled'}>Continue</button>
+      <button class="start-btn" id="signin-btn" ${(signInDraftName.trim() && hasDate) ? '' : 'disabled'}>Continue</button>
     </div>
+  </div>`;
+}
+function renderCalendarDropdown(){
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+  const startWeekday = firstOfMonth.getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+  let selDay=null, selMonth=null, selYear=null;
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(signInDraftDate);
+  if(m){ selMonth=parseInt(m[1])-1; selDay=parseInt(m[2]); selYear=parseInt(m[3]); }
+  let cells = '';
+  for(let i=0;i<startWeekday;i++) cells += `<div class="cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const isSel = (selYear===calViewYear && selMonth===calViewMonth && selDay===d);
+    cells += `<button type="button" class="cal-cell ${isSel?'selected':''}" data-caldate="${d}">${d}</button>`;
+  }
+  return `<div class="cal-dropdown">
+    <div class="cal-header">
+      <button type="button" class="cal-nav" data-calnav="-1">‹</button>
+      <div class="cal-title">${monthNames[calViewMonth]} ${calViewYear}</div>
+      <button type="button" class="cal-nav" data-calnav="1">›</button>
+    </div>
+    <div class="cal-weekdays">${['S','M','T','W','T','F','S'].map(d=>`<div>${d}</div>`).join('')}</div>
+    <div class="cal-grid">${cells}</div>
   </div>`;
 }
 function formatDateInput(raw){
@@ -1891,31 +1919,55 @@ function attachSignInHandlers(){
   const navHomeLink = document.getElementById('nav-home-link');
   if(navHomeLink) navHomeLink.addEventListener('click', (e)=>{ e.preventDefault(); state.role=null; state.tab='home'; render(); });
   const nameEl = document.getElementById('signin-name');
-  const dateEl = document.getElementById('signin-startdate');
+  const dateBtn = document.getElementById('signin-startdate-btn');
   const btn = document.getElementById('signin-btn');
-  function checkReady(){
+  nameEl.addEventListener('input', ()=>{
     signInDraftName = nameEl.value;
-    btn.disabled = !(nameEl.value.trim() && isValidDateStr(dateEl.value));
+    btn.disabled = !(nameEl.value.trim() && isValidDateStr(signInDraftDate));
+  });
+  if(dateBtn){
+    dateBtn.addEventListener('click', ()=>{
+      if(!calOpen){
+        const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(signInDraftDate);
+        if(m){ calViewMonth = parseInt(m[1])-1; calViewYear = parseInt(m[3]); }
+        else { const now = new Date(); calViewMonth = now.getMonth(); calViewYear = now.getFullYear(); }
+      }
+      calOpen = !calOpen;
+      render();
+    });
   }
-  nameEl.addEventListener('input', checkReady);
-  dateEl.addEventListener('input', ()=>{
-    const caretWasAtEnd = dateEl.selectionStart === dateEl.value.length;
-    dateEl.value = formatDateInput(dateEl.value);
-    if(caretWasAtEnd) dateEl.setSelectionRange(dateEl.value.length, dateEl.value.length);
-    signInDraftDate = dateEl.value;
-    checkReady();
+  document.querySelectorAll('[data-calnav]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const dir = parseInt(el.dataset.calnav);
+      calViewMonth += dir;
+      if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+      if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+      render();
+    });
+  });
+  document.querySelectorAll('[data-caldate]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const day = parseInt(el.dataset.caldate);
+      const mm = String(calViewMonth+1).padStart(2,'0');
+      const dd = String(day).padStart(2,'0');
+      signInDraftDate = `${mm}/${dd}/${calViewYear}`;
+      calOpen = false;
+      render();
+    });
   });
   btn.addEventListener('click', ()=>{
-    if(!nameEl.value.trim() || !isValidDateStr(dateEl.value)) return;
+    if(!nameEl.value.trim() || !isValidDateStr(signInDraftDate)) return;
     btn.disabled = true;
     btn.textContent = 'Signing in…';
-    signInTrainee(nameEl.value, dateStrToISO(dateEl.value));
+    signInTrainee(nameEl.value, dateStrToISO(signInDraftDate));
   });
 }
 
 const PARENT_TAB = {
-  schedule:'home', guides:'home', programs:'home', newhire:'home',
-  testing:'home', results:'home', print:'home', 'bar-guide':'home',
+  newhire:'home', 'active-hires':'home', print:'home',
+  'trainee-hub':'active-hires',
+  schedule:'trainee-hub', guides:'trainee-hub', programs:'trainee-hub',
+  testing:'trainee-hub', results:'trainee-hub', 'bar-guide':'trainee-hub',
   'print-packet':'print', 'print-test':'print',
   quiz:'testing', links:'testing', 'bar-links':'testing'
 };
@@ -2069,6 +2121,45 @@ function renderResults(){
     state.resultsLoading = true;
     fetchResults();
   }
+
+  if(trainee){
+    // Scoped to one specific trainee's profile
+    const total = totalTaskCount();
+    const done = Object.values(state.checks||{}).filter(Boolean).length;
+    const pct = total? Math.round((done/total)*100) : 0;
+    let html = `<div class="quiz-card" style="margin-bottom:16px;">
+      <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(trainee.name)}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Started ${isoToDateStr(trainee.start_date)}</div>
+      <div class="slice" style="height:8px;"><i style="--fill:${pct}%"></i></div>
+      <div style="font-size:13px; color:var(--muted); margin-top:6px;">${done}/${total} onboarding tasks · ${pct}%</div>
+    </div>`;
+    html += `<div class="score-bar" style="margin-bottom:14px;">
+      <div><div class="lbl">${escapeHtml(trainee.name)}'s submitted tests</div></div>
+      <button class="newset-btn" data-refreshresults="1">Refresh</button>
+    </div>`;
+    if(state.resultsLoading && state.results === null){
+      html += `<div class="ticket-obj" style="padding:0 4px;">Loading submissions…</div>`;
+      return html;
+    }
+    const mine = (state.results||[]).filter(r=>r.trainee_name.trim().toLowerCase() === trainee.name.trim().toLowerCase());
+    if(mine.length===0){
+      html += `<div class="callout">No submitted tests yet for ${escapeHtml(trainee.name)}. Matched by name typed on the test — if they typed it differently, it won't show up here.</div>`;
+      return html;
+    }
+    mine.forEach(r=>{
+      const failed = r.status === 'failed_left_page';
+      const when = new Date(r.created_at).toLocaleString();
+      const label = (r.role === 'bartender') ? 'Bartender · Specialty Drinks Test' : `Day ${r.day}`;
+      html += `<div class="quiz-card">
+        <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
+        <div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>
+        ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
+      </div>`;
+    });
+    return html;
+  }
+
   if(state.trainees === undefined || state.trainees === null){
     if(!state.traineesLoading){
       state.traineesLoading = true;
@@ -2164,6 +2255,109 @@ async function fetchTrainees(){
   }
   state.traineesLoading = false;
   if(state.tab==='results') render();
+}
+
+async function fetchActiveHires(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/trainees?select=*&role=eq.${state.role}&status=eq.active&order=created_at.desc&limit=200`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(res.ok){
+      state.activeHires = await res.json();
+    } else {
+      state.activeHires = [];
+    }
+  }catch(e){
+    console.error('fetchActiveHires failed', e);
+    state.activeHires = [];
+  }
+  state.activeHiresLoading = false;
+  if(state.tab==='active-hires') render();
+}
+
+function renderActiveHires(){
+  if(state.activeHires === null && !state.activeHiresLoading){
+    state.activeHiresLoading = true;
+    fetchActiveHires();
+  }
+  let html = `<div class="score-bar" style="margin-bottom:14px;">
+    <div><div class="lbl">Active New Hires</div></div>
+    <button class="newset-btn" data-refreshactivehires="1">Refresh</button>
+  </div>`;
+  if(state.activeHiresLoading && state.activeHires === null){
+    html += `<div class="ticket-obj" style="padding:0 4px;">Loading…</div>`;
+    return html;
+  }
+  if(!state.activeHires || state.activeHires.length===0){
+    html += `<div class="callout">Nobody active right now. Use "Start a New Hire" to add someone.</div>`;
+    return html;
+  }
+  state.activeHires.forEach(t=>{
+    html += `<button class="home-tile" data-viewtrainee="${t.id}" style="margin-bottom:12px;">
+      <div class="ht-icon">🧑‍🍳</div>
+      <div class="ht-body">
+        <div class="ht-title">${escapeHtml(t.name)}</div>
+        <div class="ht-sub">Started ${isoToDateStr(t.start_date)}</div>
+      </div>
+    </button>`;
+  });
+  return html;
+}
+
+function renderTraineeHub(){
+  if(!trainee) return `<div class="callout">No trainee selected. Go back to Active New Hires and pick someone.</div>`;
+  const total = totalTaskCount();
+  const done = Object.values(trainee.checks||state.checks||{}).filter(Boolean).length;
+  const pct = total? Math.round((done/total)*100) : 0;
+  let tiles = `
+    <button class="home-tile" data-tab="schedule">
+      <div class="ht-icon">📋</div>
+      <div class="ht-body">
+        <div class="ht-title">Schedule</div>
+        <div class="ht-sub">${done}/${total} onboarding tasks checked off · ${pct}%</div>
+      </div>
+    </button>
+    <button class="home-tile" data-tab="programs">
+      <div class="ht-icon">🎟️</div>
+      <div class="ht-body">
+        <div class="ht-title">Programs</div>
+        <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
+      </div>
+    </button>
+    <button class="home-tile" data-tab="guides">
+      <div class="ht-icon">🧾</div>
+      <div class="ht-body">
+        <div class="ht-title">POS Guides</div>
+        <div class="ht-sub">Step-by-step for entering orders, loyalty, splitting checks.</div>
+      </div>
+    </button>`;
+  if(state.role==='bartender'){
+    tiles += `
+    <button class="home-tile" data-tab="bar-guide">
+      <div class="ht-icon">🍷</div>
+      <div class="ht-body">
+        <div class="ht-title">Drinks Guide</div>
+        <div class="ht-sub">Beer, wine, spirits, and specialty drinks on the bar menu.</div>
+      </div>
+    </button>`;
+  }
+  tiles += `
+    <button class="home-tile" data-tab="testing">
+      <div class="ht-icon">📝</div>
+      <div class="ht-body">
+        <div class="ht-title">Testing</div>
+        <div class="ht-sub">Test Prep, Study Guide, and sending tests.</div>
+      </div>
+    </button>
+    <button class="home-tile" data-tab="results">
+      <div class="ht-icon">📊</div>
+      <div class="ht-body">
+        <div class="ht-title">View Results</div>
+        <div class="ht-sub">${escapeHtml(trainee.name)}'s submitted tests and progress.</div>
+      </div>
+    </button>`;
+  return `<div class="home-tiles">${tiles}</div>
+  <button class="newset-btn" id="mark-complete-btn" style="margin-top:18px; width:100%;">Mark Training Complete</button>`;
 }
 
 function renderBarLinks(){
@@ -2981,6 +3175,7 @@ function attachHandlers(){
   });
   document.querySelectorAll('[data-role]').forEach(el=>{
     el.addEventListener('click', ()=>{
+      trainee = null;
       state.role = el.dataset.role;
       state.tab = 'home';
       render();
@@ -2989,6 +3184,7 @@ function attachHandlers(){
   document.querySelectorAll('.role-switch-link').forEach(el=>{
     el.addEventListener('click', (e)=>{
       e.preventDefault();
+      trainee = null;
       state.role = null;
       state.tab = 'home';
       render();
@@ -2998,6 +3194,7 @@ function attachHandlers(){
   if(navHomeLink){
     navHomeLink.addEventListener('click', (e)=>{
       e.preventDefault();
+      trainee = null;
       state.role = null;
       state.tab = 'home';
       render();
@@ -3007,7 +3204,49 @@ function attachHandlers(){
   if(navBackLink){
     navBackLink.addEventListener('click', (e)=>{
       e.preventDefault();
-      state.tab = navBackLink.dataset.backto || 'home';
+      const dest = navBackLink.dataset.backto || 'home';
+      if(dest === 'active-hires'){ trainee = null; state.activeHires = null; }
+      state.tab = dest;
+      render();
+    });
+  }
+  document.querySelectorAll('[data-viewtrainee]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = parseInt(el.dataset.viewtrainee);
+      const row = (state.activeHires||[]).find(t=>t.id===id);
+      if(!row) return;
+      trainee = { id: row.id, name: row.name, start_date: row.start_date };
+      state.checks = row.checks || {};
+      state.quizChecks = row.quiz_checks || {};
+      state.answers = row.answers || {};
+      state.tab = 'trainee-hub';
+      render();
+    });
+  });
+  document.querySelectorAll('[data-refreshactivehires]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.activeHires = null; state.activeHiresLoading=false; render(); });
+  });
+  const markCompleteBtn = document.getElementById('mark-complete-btn');
+  if(markCompleteBtn){
+    markCompleteBtn.addEventListener('click', async ()=>{
+      if(!trainee) return;
+      markCompleteBtn.disabled = true;
+      markCompleteBtn.textContent = 'Closing out…';
+      try{
+        await fetch(`${SUPABASE_URL}/rest/v1/trainees?id=eq.${trainee.id}`, {
+          method:'PATCH',
+          headers:{
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type':'application/json',
+            'Prefer':'return=minimal'
+          },
+          body: JSON.stringify({ status:'completed', updated_at: new Date().toISOString() })
+        });
+      }catch(e){ console.error('mark complete failed', e); }
+      trainee = null;
+      state.activeHires = null;
+      state.tab = 'active-hires';
       render();
     });
   }
