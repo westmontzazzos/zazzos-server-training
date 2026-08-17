@@ -1357,11 +1357,11 @@ const QUIZ = [
   "List the ingredients for the Meat Lovers.",
   "List the ingredients for the BBQ Chicken.",
   "List the ingredients for the Buffalo Chicken.",
-  "List the ingredients for the Margarita.",
+  "List the ingredients for the Margherita.",
   "List the ingredients for the Hawaiian.",
   "List the ingredients for the Mama Zazzo's.",
   "List the ingredients for the Chicken Bacon Alfredo.",
-  "Describe SAL'S WAY."
+  "List the ingredients for Sal's Sicilian."
 ]},
 { day:2, cat:"Appetizers", qs:[
   "What is in an appetizer plate?",
@@ -1458,8 +1458,6 @@ const SPECIALTY_PIZZAS = [
   { name: "Chicken Bacon Alfredo", desc: "Alfredo sauce, chicken & bacon" },
   { name: "Veggie Special", desc: "Mushroom, green pepper, onion & tomato" },
   { name: "Zazzo's Special", desc: "Sausage, mushroom, green pepper & onion" },
-  { name: "Sausage Pizza", desc: "Pizza dough + pizza sauce + mozz + sausage" },
-  { name: "Cheese Pizza", desc: "Pizza dough + pizza sauce + mozz" },
   { name: "Hawaiian", desc: "Canadian bacon, pineapple, house BBQ or marinara sauce" },
   { name: "Buffalo Chicken", desc: "House wing sauce, jalapeño & chicken" },
   { name: "Sal's Sicilian", desc: "Sausage, mushroom & green pepper" },
@@ -1489,7 +1487,7 @@ const FIXED_MC_BANK = {
   ],
   PizzaCrust: [
     { prompt: "Which crust style is baked in a deep pan with the sauce layered on top instead of under the cheese?", correct: "Deep Dish", decoys: ["Thin Crust", "Sicilian", "Stuffed"] },
-    { prompt: "Which crust style is cut into wedges like a regular pie, but with a much thicker, bread-like crust?", correct: "Sicilian", decoys: ["Thin Crust", "Deep Dish", "Stuffed"] },
+    { prompt: "Which crust style is pie cut, but has a much thicker, bread-like crust than our regular pizza?", correct: "Sicilian", decoys: ["Thin Crust", "Deep Dish", "Stuffed"] },
     { prompt: "Which crust style has two layers of dough with cheese and toppings baked in between?", correct: "Stuffed", decoys: ["Thin Crust", "Sicilian", "Deep Dish"] },
     { prompt: "Which is our standard, everyday crust?", correct: "Thin Crust", decoys: ["Deep Dish", "Stuffed", "Sicilian"] }
   ]
