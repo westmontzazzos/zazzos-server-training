@@ -25,7 +25,7 @@
     --badge-yellow-bg:#FFF3B0; --badge-yellow-fg:#7A5B00;
     --badge-red-bg:#FDECEA; --badge-red-fg:#C0392B;
   }
-  *{box-sizing:border-box;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--bg);
@@ -66,6 +66,25 @@
     gap:8px;
   }
   .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;}
+  .home-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:700;
+    color:var(--red);
+    cursor:pointer;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    background:#fff;
+    border:none;
+    box-shadow:var(--card-shadow);
+    border-radius:20px;
+    padding:8px 16px;
+    text-decoration:none;
+  }
+  .home-btn:active{ box-shadow:0 1px 4px rgba(20,20,20,0.1); }
   h1.brand{
     font-family:'Libre Baskerville', Georgia, serif;
     font-style:normal;
@@ -139,6 +158,8 @@
     cursor:pointer;
     white-space:nowrap;
   }
+  .tabbtn:active{ transform:scale(0.96); }
+
   .tabbtn.active{
     color:#fff;
     background:var(--red);
@@ -166,6 +187,8 @@
     text-align:center;
     cursor:pointer;
   }
+  .daybtn:active{ transform:scale(0.97); }
+
   .daybtn b{display:block; font-size:17px; color:var(--ink); font-family:'Libre Baskerville',serif; font-weight:700;}
   .daybtn.active{
     background:var(--red);
@@ -350,6 +373,8 @@
   .acc-body h4:first-child{ margin-top:0; }
   .acc-body ol, .acc-body ul{ margin:0 0 0 18px; padding:0; }
   .acc-body li{ margin-bottom:6px; }
+  .acc-body p{ margin-bottom:10px; }
+  .acc-body p:last-child{ margin-bottom:0; }
   .acc-body .code{
     font-family:'Inter', sans-serif;
     font-weight:700;
@@ -394,6 +419,8 @@
     color:var(--muted);
     cursor:pointer;
   }
+  .pill:active{ transform:scale(0.97); }
+
   .pill.active{
     background:var(--red);
     color:#fff;
@@ -524,6 +551,8 @@
     border-radius:999px;
     cursor:pointer;
   }
+  .newset-btn:active{ transform:scale(0.97); }
+
   .mcq{
     background:var(--card);
     border-radius:18px;
@@ -561,6 +590,8 @@
     color:var(--ink);
     cursor:pointer;
   }
+  .mcopt:active:not([disabled]){ transform:scale(0.98); }
+
   .mcopt:last-child{ margin-bottom:0; }
   .mcopt.selected{ border-color:var(--ink); }
   .mcopt.correct{ background:var(--badge-green-bg); border-color:var(--green); color:var(--badge-green-fg); font-weight:600; }
@@ -656,6 +687,8 @@
     letter-spacing:0.03em;
     cursor:pointer;
   }
+  .start-btn:active:not(:disabled){ transform:scale(0.97); }
+
   .start-btn:disabled{ background:var(--hair); color:var(--muted); cursor:not-allowed; }
   .submit-btn{
     width:100%;
@@ -672,6 +705,8 @@
     cursor:pointer;
     margin-top:8px;
   }
+  .submit-btn:active{ transform:scale(0.97); }
+
   .end-screen{
     text-align:center;
     padding:40px 20px;
@@ -712,17 +747,30 @@
     margin-top:6px;
   }
   .home-tile{
-    display:block;
+    display:flex;
+    align-items:center;
+    gap:14px;
     width:100%;
     box-sizing:border-box;
     text-align:left;
     background:var(--card);
-    border:1px solid var(--hair);
+    border:none;
     border-radius:16px;
     padding:16px 18px;
     box-shadow:var(--card-shadow);
     cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
   }
+  .home-tile:active{ transform:scale(0.98); }
+  .ht-icon{
+    flex:0 0 40px;
+    width:40px; height:40px;
+    border-radius:50%;
+    background:var(--badge-red-bg);
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px;
+  }
+  .ht-body{ flex:1; }
   .ht-title{
     font-family:'Libre Baskerville',serif;
     font-weight:700;
@@ -763,6 +811,12 @@
   /* Print documents */
   .print-doc{ font-family:'Inter',sans-serif; font-size:14px; line-height:1.6; color:var(--ink); }
   .print-doc h1,.print-doc h2,.print-doc h3{ color:var(--ink); }
+  .print-doc h1{ margin-bottom:8px; }
+  .print-doc h2{ margin-bottom:6px; }
+  .print-doc h3{ margin-bottom:4px; }
+  .print-doc p{ margin-bottom:8px; }
+  .print-doc ul{ margin:0 0 10px 20px; }
+  .print-doc li{ margin-bottom:4px; }
   .print-doc .code{ font-family:'Inter',sans-serif; font-weight:700; }
   @media print{
     .hero, .tabbar, .no-print, .footnote{ display:none !important; }
@@ -1442,7 +1496,7 @@ function render(){
 
   let html = `
   <div class="hero">
-    <div class="eyebrow"><a href="#" data-tab="home" style="color:var(--red); text-decoration:none;">← Home</a> · Zazzo's</div>`;
+    <div class="eyebrow"><a href="#" data-tab="home" class="home-btn">← Home</a></div>`;
 
   if(trainee){
     const totalTasks = totalTaskCount();
@@ -1515,28 +1569,46 @@ function renderHome(){
     </div>
     <div class="home-tiles">
       <button class="home-tile" data-tab="schedule">
-        <div class="ht-title">Review the Manual</div>
-        <div class="ht-sub">Schedule, POS guides, programs — no name needed, just browse.</div>
+        <div class="ht-icon">📋</div>
+        <div class="ht-body">
+          <div class="ht-title">Review the Manual</div>
+          <div class="ht-sub">Schedule, POS guides, programs — no name needed, just browse.</div>
+        </div>
       </button>
       <button class="home-tile" data-tab="newhire">
-        <div class="ht-title">Start a New Hire</div>
-        <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+        <div class="ht-icon">🧑‍🍳</div>
+        <div class="ht-body">
+          <div class="ht-title">Start a New Hire</div>
+          <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+        </div>
       </button>
       <button class="home-tile" data-homelink="study">
-        <div class="ht-title">Study Guide</div>
-        <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
+        <div class="ht-icon">🎯</div>
+        <div class="ht-body">
+          <div class="ht-title">Study Guide</div>
+          <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
+        </div>
       </button>
       <button class="home-tile" data-tab="links">
-        <div class="ht-title">Send a Test</div>
-        <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+        <div class="ht-icon">🔗</div>
+        <div class="ht-body">
+          <div class="ht-title">Send a Test</div>
+          <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+        </div>
       </button>
       <button class="home-tile" data-tab="results">
-        <div class="ht-title">View Results</div>
-        <div class="ht-sub">See submitted tests and trainee progress.</div>
+        <div class="ht-icon">📊</div>
+        <div class="ht-body">
+          <div class="ht-title">View Results</div>
+          <div class="ht-sub">See submitted tests and trainee progress.</div>
+        </div>
       </button>
       <button class="home-tile" data-tab="print">
-        <div class="ht-title">Print</div>
-        <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
+        <div class="ht-icon">🖨️</div>
+        <div class="ht-body">
+          <div class="ht-title">Print</div>
+          <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
+        </div>
       </button>
     </div>
   </div>`;
@@ -1545,7 +1617,7 @@ function renderHome(){
 function renderSignInGate(){
   return `<div class="focused-wrap">
     <div class="focused-head">
-      <a href="#" id="signin-home-link" style="color:var(--red); text-decoration:none; font-family:'Inter',sans-serif; font-size:13px; display:inline-block; margin-bottom:10px;">← Home</a>
+      <a href="#" id="signin-home-link" class="home-btn" style="margin-bottom:10px;">← Home</a>
       <h1>Zazzo's</h1>
       <div class="sub">New Hire Training</div>
     </div>
