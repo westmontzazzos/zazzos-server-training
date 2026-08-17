@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zazzo's — Server Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#C8102E;
+    --red-dim:#a10d25;
+    --green:#1B6B3A;
+    --ink:#181818;
+    --bg:#F6F5F2;
+    --card:#FFFFFF;
+    --muted:#6b6b68;
+    --hair:#ece9e2;
+    --card-shadow: 0 2px 12px rgba(20,20,20,0.06), 0 1px 2px rgba(20,20,20,0.05);
+    --badge-green-bg:#E3F3E9; --badge-green-fg:#1B6B3A;
+    --badge-yellow-bg:#FFF3B0; --badge-yellow-fg:#7A5B00;
+    --badge-red-bg:#FDECEA; --badge-red-fg:#C0392B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    font-size:16px;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--red); color:#fff; }
+  a{color:inherit;}
+
+  .app{
+    max-width:720px;
+    margin:0 auto;
+    padding:0 0 60px 0;
+    min-height:100vh;
+    position:relative;
+  }
+
+  /* HERO */
+  .hero{
+    padding:28px 20px 18px;
+    position:relative;
+    background:var(--card);
+    border-bottom:1px solid var(--hair);
+  }
+  .hero::before{ content:none; }
+  .eyebrow{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--red);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;}
+  h1.brand{
+    font-family:'Libre Baskerville', Georgia, serif;
+    font-style:normal;
+    font-weight:700;
+    font-size:clamp(32px,8vw,42px);
+    margin:8px 0 4px;
+    line-height:1.05;
+    color:var(--ink);
+  }
+  .brand-sub{
+    font-family:'Inter', sans-serif;
+    font-weight:400;
+    font-size:14.5px;
+    color:var(--muted);
+    margin:0 0 18px;
+  }
+
+  .progress-row{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+  }
+  .slice{
+    flex:1;
+    height:8px;
+    border-radius:99px;
+    background:var(--hair);
+    position:relative;
+    overflow:hidden;
+  }
+  .slice i{
+    display:block;
+    height:100%;
+    width:var(--fill,0%);
+    background:var(--green);
+    transition:width .4s ease;
+  }
+  .progress-caption{
+    font-family:'Inter', sans-serif;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:8px;
+    letter-spacing:0.01em;
+  }
+
+  /* TABS (top) — persistent, DoorDash-style segmented control */
+  .tabbar{
+    display:flex;
+    gap:6px;
+    padding:14px 20px 14px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    background:var(--card);
+    border-bottom:1px solid var(--hair);
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+  .tabbar::-webkit-scrollbar{display:none;}
+  .tabbtn{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:var(--bg);
+    border:none;
+    padding:10px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .tabbtn.active{
+    color:#fff;
+    background:var(--red);
+  }
+
+  .content{ padding:18px 20px 10px; }
+
+  /* DAY SELECTOR */
+  .dayrow{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .daybtn{
+    flex:1;
+    padding:12px 4px;
+    border-radius:16px;
+    border:none;
+    background:var(--card);
+    box-shadow:var(--card-shadow);
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    text-align:center;
+    cursor:pointer;
+  }
+  .daybtn b{display:block; font-size:17px; color:var(--ink); font-family:'Libre Baskerville',serif; font-weight:700;}
+  .daybtn.active{
+    background:var(--red);
+    color:#fff;
+  }
+  .daybtn.active b{color:#fff;}
+  .daybtn.done::after{
+    content:"✓ done";
+    display:block;
+    font-size:9.5px;
+    margin-top:2px;
+    color:var(--green);
+    font-weight:700;
+  }
+  .daybtn.active.done::after{ color:#fff; }
+
+  /* DAY CARD */
+  .ticket{
+    background:var(--card);
+    color:var(--ink);
+    border-radius:18px;
+    margin-bottom:16px;
+    box-shadow:var(--card-shadow);
+    position:relative;
+    padding:20px 20px 18px;
+  }
+  .ticket::before{ content:none; }
+  .ticket-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px solid var(--hair);
+    padding-bottom:12px;
+    margin-bottom:12px;
+    gap:10px;
+  }
+  .ticket-title{
+    font-family:'Libre Baskerville', Georgia, serif;
+    font-weight:700;
+    font-size:19px;
+    line-height:1.2;
+  }
+  .ticket-tag{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--red);
+    white-space:nowrap;
+  }
+  .ticket-obj{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--muted);
+    margin-bottom:14px;
+    font-style:italic;
+    font-family:'Libre Baskerville', Georgia, serif;
+  }
+
+  .block{ margin-bottom:16px; }
+  .block:last-child{ margin-bottom:0; }
+  .block-h{
+    font-family:'Inter', sans-serif;
+    font-weight:800;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--red);
+    margin-bottom:8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .block-h .hrs{
+    font-family:'Inter', sans-serif;
+    font-weight:500;
+    color:var(--muted);
+    text-transform:none;
+    letter-spacing:0;
+  }
+
+  .item{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:8px 4px;
+    font-size:14.5px;
+    line-height:1.45;
+    cursor:pointer;
+    border-radius:10px;
+  }
+  .item:hover{ background:var(--bg); }
+  .check{
+    flex:0 0 20px;
+    width:20px; height:20px;
+    border-radius:6px;
+    border:1.5px solid #d5d1c8;
+    margin-top:1px;
+    display:flex; align-items:center; justify-content:center;
+    background:#fff;
+    transition:all .15s ease;
+  }
+  .check.on{
+    background:var(--green);
+    border-color:var(--green);
+  }
+  .check.on::after{
+    content:"✓";
+    color:#fff;
+    font-size:12px;
+    font-weight:700;
+  }
+  .item.done span{ color:var(--muted); text-decoration:line-through; text-decoration-color:#c9c5ba; }
+
+  .callout{
+    margin-top:14px;
+    padding:14px 16px;
+    background:var(--badge-yellow-bg);
+    border-radius:14px;
+    border-left:none;
+    font-size:13.5px;
+    line-height:1.55;
+    color:#5c4600;
+  }
+  .callout b{ color:var(--red-dim); }
+
+  /* Guides / Programs */
+  .accordion{
+    background:var(--card);
+    border:none;
+    border-radius:18px;
+    margin-bottom:12px;
+    overflow:hidden;
+    box-shadow:var(--card-shadow);
+  }
+  .acc-head{
+    padding:16px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    cursor:pointer;
+    gap:10px;
+  }
+  .acc-title{
+    font-family:'Libre Baskerville', Georgia, serif;
+    font-weight:700;
+    font-size:16.5px;
+    color:var(--ink);
+  }
+  .acc-meta{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:10px;
+    color:var(--red);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .acc-arrow{
+    color:var(--muted);
+    transition:transform .2s ease;
+    flex:0 0 auto;
+  }
+  .accordion.open .acc-arrow{ transform:rotate(180deg); }
+  .acc-body{
+    display:none;
+    padding:0 18px 18px;
+    font-size:14.5px;
+    line-height:1.65;
+    color:#3d3d3b;
+  }
+  .accordion.open .acc-body{ display:block; }
+  .acc-body h4{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--green);
+    margin:14px 0 6px;
+  }
+  .acc-body h4:first-child{ margin-top:0; }
+  .acc-body ol, .acc-body ul{ margin:0 0 0 18px; padding:0; }
+  .acc-body li{ margin-bottom:6px; }
+  .acc-body .code{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    background:var(--badge-green-bg);
+    color:var(--badge-green-fg);
+    padding:2px 8px;
+    border-radius:6px;
+    font-size:13.5px;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:10px 0 14px;
+  }
+  .stat{
+    background:var(--bg);
+    border-radius:14px;
+    padding:12px 14px;
+  }
+  .stat .k{ font-family:'Inter',sans-serif; font-weight:700; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
+  .stat .v{ font-family:'Libre Baskerville',serif; font-weight:700; font-size:18px; color:var(--green); margin-top:2px;}
+
+  /* Test prep */
+  .day-pill-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .pill{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    padding:8px 16px;
+    border-radius:999px;
+    border:none;
+    background:var(--card);
+    box-shadow:var(--card-shadow);
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .pill.active{
+    background:var(--red);
+    color:#fff;
+  }
+  .quiz-card{
+    background:var(--card);
+    color:var(--ink);
+    border-radius:18px;
+    padding:16px 18px;
+    margin-bottom:12px;
+    box-shadow:var(--card-shadow);
+  }
+  .quiz-cat{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--red);
+    margin-bottom:10px;
+    padding-bottom:9px;
+    border-bottom:1px solid var(--hair);
+  }
+  .qrow{ margin-bottom:12px; }
+  .qrow:last-child{ margin-bottom:0; }
+  .qtext{
+    display:flex;
+    gap:8px;
+    font-size:14px;
+    font-weight:600;
+    line-height:1.4;
+    margin-bottom:7px;
+  }
+  .qtext .qcheck{
+    flex:0 0 18px; width:18px; height:18px;
+    border-radius:5px;
+    border:1.5px solid #d5d1c8;
+    margin-top:1px;
+    cursor:pointer;
+    background:#fff;
+  }
+  .qtext .qcheck.on{ background:var(--green); border-color:var(--green); }
+  .qtext .qcheck.on::after{ content:"✓"; color:#fff; font-size:10px; display:block; text-align:center; line-height:15px;}
+  .qtext span{ flex:1; }
+  textarea.answer{
+    width:100%;
+    border:1px solid var(--hair);
+    background:var(--bg);
+    border-radius:10px;
+    padding:9px 12px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    resize:vertical;
+    min-height:36px;
+  }
+  textarea.answer:focus{ outline:2px solid var(--red); }
+
+  /* bottom tab bar (unused, kept for future use) */
+  .bottombar{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    background:var(--card);
+    border-top:1px solid var(--hair);
+    display:flex;
+    max-width:720px;
+    margin:0 auto;
+    z-index:10;
+  }
+  .bnav{
+    flex:1;
+    padding:12px 4px 10px;
+    text-align:center;
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .bnav .ic{ display:block; font-size:18px; margin-bottom:2px; }
+  .bnav.active{ color:var(--red); }
+
+  .footnote{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    text-align:center;
+    margin:24px 0 0;
+    line-height:1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const STORAGE_KEY = 'zazzo-training-progress-v1';
+let state = {
+  tab: 'schedule',
+  day: 1,
+  checks: {},   // key -> bool  (day task checklist)
+  quizChecks: {}, // key -> bool
+  answers: {},  // key -> string
+  openAcc: {}   // key -> bool
+};
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY);
+    if(res && res.value){
+      const saved = JSON.parse(res.value);
+      state = Object.assign(state, saved);
+    }
+  }catch(e){ /* no saved state yet */ }
+  render();
+}
+async function saveState(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify({
+      checks: state.checks, quizChecks: state.quizChecks, answers: state.answers
+    }));
+  }catch(e){ console.error('save failed', e); }
+}
+
+// ---------------- CONTENT DATA ----------------
+
+const DAYS = [
+{
+  n:1, title:"Orientation & Shadowing Basics", tag:"1 hr + 2–4 hrs floor",
+  objective:"Introduce company culture, service standards, and safety procedures — begin hands-on observation.",
+  sections:[
+    { h:"Orientation", hrs:"1 hr", items:[
+      "Welcome & introductions — meet management and key team members",
+      "Review employee handbook",
+      "Dress code / uniform standards",
+      "Attendance and scheduling system",
+      "Health & safety rules",
+      "Tour: kitchen, bar, dish pit, dry/cold storage, salad bar",
+      "Tour: server stations and assigned sections",
+      "Tour: restrooms, dining room, party room, cove, patio",
+      "Menu introduction — categories, best sellers, common modifiers",
+      "Side work introduction — silverware rolling, stocking stations, condiments, drink stations, glassware"
+    ]},
+    { h:"Floor Shadowing", hrs:"2–4 hrs", items:[
+      "Review: how to enter an order",
+      "Review: how to enter a customer when starting an order",
+      "Assigned to a trainer (experienced server)",
+      "Observe: greeting guests",
+      "Observe: describing specials",
+      "Observe: taking orders & inputting into POS",
+      "Observe: running food/drinks",
+      "Observe: bussing/resetting tables",
+      "Observe: side work and shift-change responsibilities",
+      "End of shift review (15 min) — trainer feedback, your questions, manager check-in"
+    ]}
+  ],
+  testPrep:"Pizzas, Apps, Specials, Customer Entry & Loyalty Program"
+},
+{
+  n:2, title:"Service Flow & POS Practice", tag:"1 hr + 2–4 hrs floor",
+  objective:"Begin light interaction with guests under supervision, continue shadowing, and learn POS operations.",
+  sections:[
+    { h:"Pre-Shift Training", hrs:"1 hr", items:[
+      "Detailed POS training: clock in/out",
+      "Table layout and assigning tables",
+      "Ringing in orders and modifiers",
+      "Voiding/comping (manager only)",
+      "Splitting checks & processing payments",
+      "Menu deep dive: ingredients, portion sizes, common guest questions",
+      "Service standards: course timing (starters, entrées, desserts)",
+      "Service standards: how to upsell politely",
+      "Service standards: table maintenance (pre-bussing, refills)"
+    ]},
+    { h:"Shadow + Assist", hrs:"2–4 hrs", items:[
+      "Review: VIP Program, Pizza Club, Text Club",
+      "Assigned to same or new trainer",
+      "Greet guests with trainer",
+      "Take beverage orders",
+      "Run drinks/food",
+      "Begin practicing order entry",
+      "Start resetting tables after guests leave",
+      "Trainer models proper guest interaction"
+    ]}
+  ],
+  testPrep:"Dinners, Handhelds",
+  note:"Complete the Server Test sections on Pizzas, APPs, Daily Specials, Customer Entry, and the Loyalty Program today."
+},
+{
+  n:3, title:"Hands-On Practice", tag:"1 hr + 2–4 hrs floor",
+  objective:"Begin actively serving 1–2 tables with trainer oversight. Reinforce guest service standards and time management.",
+  sections:[
+    { h:"Pre-Shift Training", hrs:"1 hr", items:[
+      "Mock table scenarios: handling allergies",
+      "Mock table scenarios: guest complaints",
+      "Mock table scenarios: kids at the table",
+      "Mock table scenarios: large party needs",
+      "Practice wine/cocktail knowledge (if applicable)",
+      "Set up assigned server station",
+      "Stock and prep side duties"
+    ]},
+    { h:"On-Floor Training", hrs:"2–4 hrs", items:[
+      "Review: how to split tickets and how to merge tickets",
+      "Assigned 1–2 real tables, trainer shadowing (training-wheels style)",
+      "Trainer handles rest of section",
+      "Practice: full guest interaction cycle",
+      "Practice: upselling drinks or desserts",
+      "Practice: accurate order entry and time checks",
+      "Practice: running and presenting food",
+      "Practice: resetting table",
+      "Feedback on pace, communication, and cleanliness",
+      "Trainer logs strengths & improvement areas"
+    ]}
+  ],
+  testPrep:"Pasta, Soups + Salads",
+  note:"Complete the Server Test sections on Dinners and Handhelds today."
+},
+{
+  n:4, title:"Final Training Day — Mock Solo Shift", tag:"1 hr + 2–4 hrs eval",
+  objective:"New hire serves a small section semi-independently with trainer shadowing; readiness evaluation.",
+  sections:[
+    { h:"Pre-Shift", hrs:"1 hr", items:[
+      "Review key points — more POS training (optional)",
+      "Be ready to answer: what are today's specials?",
+      "Be ready to answer: how do you separate tickets?",
+      "Be ready to answer: what's the difference between VIP Club, Text Club, and Pizza Club?",
+      "Prep assigned section — side work setup",
+      "Stock everything before dinner"
+    ]},
+    { h:"On-Floor Evaluation", hrs:"2–4 hrs", items:[
+      "Assigned to mini section (1–3 tables max)",
+      "Trainer shadows but does not intervene unless needed",
+      "Greeting guests",
+      "Menu knowledge & suggestive selling",
+      "Taking and entering orders",
+      "Communicating with kitchen",
+      "Handling payment",
+      "Maintaining clean section and proper side work",
+      "Mid-shift trainer feedback",
+      "End of shift evaluation with manager & trainer",
+      "Finish final portions of test (pizza and specials portions)"
+    ]}
+  ],
+  testPrep:null,
+  note:"Complete the Server Test sections on Pastas, Soup & Salad, Desserts, and Liquor today.",
+  final:"If competent: graduate to solo shifts with light support. If not ready: additional training day(s) are scheduled with clear goals."
+}
+];
+
+const GUIDES = [
+{ id:'g1', title:"How to Enter an Order", meta:"POS · Core Flow", body:`
+<h4>Step by step</h4>
+<ol>
+<li>Select the appropriate table number.</li>
+<li>Enter the guest's name and phone number (if applicable).</li>
+<li>Add drinks — fountain drinks or bar beverages.</li>
+<li>Appetizers — input them and press <span class="code">Make Now</span> so they fire immediately.</li>
+<li>Soups & salads — enter, then select <span class="code">Make Now</span>.</li>
+<li>Entrées & pizzas — enter pastas, sandwiches, dinners, pizzas.</li>
+</ol>
+<h4>Timing buttons</h4>
+<ul>
+<li><b>Make with Dinner</b> — multiple entrées (pasta, sandwich, dinner) served together.</li>
+<li><b>Make with Pizza</b> — pizza + entrée, so the entrée comes out with the pizza.</li>
+</ul>
+<h4>Examples</h4>
+<ul>
+<li>Pasta + Sandwich + Dinner → <span class="code">Make with Dinner</span></li>
+<li>Pizza + Pasta or Pizza + Dinner → <span class="code">Make with Pizza</span></li>
+</ul>
+<h4>Desserts</h4>
+<p>Prepared by the server — refer to the red binder at the server station.</p>
+<h4>Before finalizing</h4>
+<p>Apply any discounts, VIP status, or loyalty rewards.</p>
+`},
+{ id:'g2', title:"Customer Info & Loyalty Enrollment", meta:"POS · Loyalty", body:`
+<h4>Collect</h4>
+<ul><li>First and last name</li><li>Phone number</li></ul>
+<h4>Steps</h4>
+<ol>
+<li>Go to the server computer and select the guest's table.</li>
+<li>Click the <span class="code">Customer</span> tab.</li>
+<li>Enter the phone number — the Customer Information tab appears.</li>
+<li>Fill in first and last name.</li>
+<li>Click the <span class="code">Zazzo's Customer Loyalty</span> tab (third option, right side).</li>
+<li>Click <span class="code">ENROLL</span>.</li>
+<li>Close the window — the guest is enrolled and the order is ready to put in.</li>
+</ol>
+<h4>How the program works</h4>
+<div class="stat-grid">
+  <div class="stat"><div class="k">Earn rate</div><div class="v">1 pt / $1</div></div>
+  <div class="stat"><div class="k">Reward</div><div class="v">$5 per 100 pts</div></div>
+</div>
+<p>Credits can be used for dine-in, pick-up, or delivery.</p>
+<p><b>Example:</b> 1,500 points ÷ 100 = 15 → 15 × $5 = <b>$75 in loyalty credit</b>.</p>
+`},
+{ id:'g3', title:"Split & Merge Tickets", meta:"POS · Advanced", body:`
+<h4>Splitting a ticket</h4>
+<ol>
+<li>Enter the full order as normal.</li>
+<li>Tap <span class="code">Full Review</span> at the bottom.</li>
+<li>Click <span class="code">View Tickets</span> (top left, second column).</li>
+<li>Click <span class="code">Add Ticket</span> to create a second ticket.</li>
+<li>Highlight the item to move — use <span class="code">Multiselect</span> for several at once.</li>
+<li>Press <span class="code">Move</span> on the right.</li>
+<li>Tap the destination ticket — items transfer over.</li>
+<li>Tap <span class="code">Complete All</span> on the left to finish.</li>
+</ol>
+<h4>Merging tickets</h4>
+<ol>
+<li>Pull up each table one at a time — note the ticket number at the top of Full Review.</li>
+<li>Open the ticket you want to merge from.</li>
+<li>In Full Review, click <span class="code">Load Ticket</span> and enter the second ticket number.</li>
+<li>Both tickets appear — click the top of the ticket to move.</li>
+<li>Click <span class="code">Move</span> on the right.</li>
+<li>Tap the ticket everything should move <b>to</b>, then press <span class="code">Complete All</span>.</li>
+<li>Close the now-empty ticket. Done — everything's on one ticket.</li>
+</ol>
+`}
+];
+
+const PROGRAMS = [
+{ id:'p1', title:"VIP Program", meta:"$49.99/mo · $150+ value", body:`
+<div class="stat-grid">
+  <div class="stat"><div class="k">Cost</div><div class="v">$49.99/mo</div></div>
+  <div class="stat"><div class="k">Redemptions</div><div class="v">3 / day</div></div>
+</div>
+<p>Customer must show the VIP app to redeem. Redemption code: <span class="code">1234</span></p>
+<h4>How to redeem</h4>
+<ol>
+<li>Ask the guest to show their VIP app.</li>
+<li>Select the items in-app and enter code <span class="code">1234</span>.</li>
+<li>In Full Review, click <span class="code">Coupon</span> tab → <span class="code">VIP Coupons</span> → select and apply.</li>
+</ol>
+<h4>What's included</h4>
+<ul>
+<li>12" one-topping pizza — $17.75 value</li>
+<li>12" frozen pizza — sausage, pepperoni, or cheese</li>
+<li>4× choice of: appetizer, salad, pasta, or sandwich (no extras/sides/platters)</li>
+<li>Bottle of house wine — $11.50 value</li>
+<li>6-pack of beer — $8.99 value</li>
+<li>$10 cash credit (manager adds to machine manually)</li>
+<li>Birthday dinner — up to $17 (valid during birthday month, with ID)</li>
+<li>Monthly $100 raffle — auto-entered for members</li>
+</ul>
+<p><b>Note:</b> extra toppings, sauces, upgrades, or sides — guest pays the price difference.</p>
+`},
+{ id:'p2', title:"Text Club", meta:"Free to join", body:`
+<h4>How customers join</h4>
+<ul>
+<li>Scan the QR code on To-Go menus, or</li>
+<li>Text <span class="code">ZAZZOS</span> to <span class="code">(833) 391-7070</span></li>
+</ul>
+<p><b>New member offer:</b> 20% off first order.</p>
+<h4>Rotating offers</h4>
+<ul>
+<li>Free appetizer plate with $25+</li>
+<li>10% off $30+ / $5 off $30+ / 15% off $30+</li>
+<li>Free birthday dessert</li>
+<li>Text Club Lottery — free large 1-topping thin crust pizza</li>
+</ul>
+<h4>How to redeem</h4>
+<ol>
+<li>Ask the customer to open the Text Club message.</li>
+<li>Tap <span class="code">Redeem</span> → select <span class="code">In-Store</span>.</li>
+<li>A coupon code appears (e.g. "FreeAPP", "SU20").</li>
+<li>In Full Review → <span class="code">Coupons</span> → Text Club section → apply the matching code.</li>
+</ol>
+<p><b>One text club code per visit, per customer.</b></p>
+`},
+{ id:'p3', title:"Pizza Club", meta:"$49.99/mo · $80+ value", body:`
+<div class="stat-grid">
+  <div class="stat"><div class="k">Includes</div><div class="v">3 × 16" pizzas/mo</div></div>
+  <div class="stat"><div class="k">Max use</div><div class="v">3 / day</div></div>
+</div>
+<p>Each 16" one-topping pizza is valued at $24.75. Unused pizzas <b>roll over</b> to the next month. Extra toppings — guest pays the difference.</p>
+<h4>How to redeem</h4>
+<ol>
+<li>Ask the customer to open their Pizza Club app.</li>
+<li>Redeem pizza(s) in-app using code <span class="code">1234</span>.</li>
+<li>In Full Review → <span class="code">Coupons</span> → Pizza Club section → apply "Pizza Club One-Topping Pizza".</li>
+</ol>
+`}
+];
+
+const QUIZ = [
+{ day:2, cat:"Pizzas", qs:[
+  "What sizes does the thin crust come in and how many people does each pizza feed?",
+  "What sizes does the stuffed, Sicilian, and deep dish come in and how many does each feed?",
+  "What size does a gluten free & cauliflower crust come in?",
+  "Describe a deep-dish pizza.",
+  "Describe a Sicilian pizza.",
+  "Describe a stuffed pizza.",
+  "List the ingredients for the Zazzo's Special.",
+  "List the ingredients for the Veggie Special.",
+  "List the ingredients for the Meat Lovers.",
+  "List the ingredients for the BBQ Chicken.",
+  "List the ingredients for the Buffalo Chicken.",
+  "List the ingredients for the Margarita.",
+  "List the ingredients for the Hawaiian.",
+  "List the ingredients for the Mama Zazzo's.",
+  "List the ingredients for the Chicken Bacon Alfredo.",
+  "Describe SAL'S WAY."
+]},
+{ day:2, cat:"Appetizers", qs:[
+  "What is in an appetizer plate?",
+  "What is included in the Zazzo's platter? What questions should you ask about it?",
+  "What size orders does the jumbo shrimp appetizer come in?",
+  "What is the difference between chicken fingers and boneless wings?",
+  "How many wings per order? What are the sauce options?",
+  "How many pieces come in an order of: wings, boneless wings, pretzel sticks, potato skins, mozzarella sticks, cheesy breadsticks, bruschetta?",
+  "What is the credit card fee %?"
+]},
+{ day:2, cat:"Specials", qs:[
+  "What are the daily food specials — Monday through Thursday?",
+  "What are the daily drink specials — Monday through Sunday?"
+]},
+{ day:2, cat:"Loyalty Program", qs:[
+  "What is the loyalty program?",
+  "How does one join?",
+  "How do you ensure a customer is enrolled and earning points?",
+  "How can they redeem points?"
+]},
+{ day:3, cat:"Dinners", qs:[
+  "What size orders are available for the ribs?",
+  "How many pieces come in the jumbo shrimp dinner?",
+  "How many pieces come in the Broasted Chicken Dinner, and what kind of pieces are they?",
+  "What are the side options for all entrées?",
+  "Describe the Chicken and Veggie Dinner.",
+  "Describe the Sausage and Peppers Platter.",
+  "How many pieces of shrimp come with the Rib and Shrimp Dinner?",
+  "Describe what \"broasted\" means.",
+  "Can you get all dark meat or all white meat with the Broasted Chicken Dinner?",
+  "Describe the Salmon dinner."
+]},
+{ day:3, cat:"Handhelds", qs:[
+  "What are the side options for each sandwich/wrap?",
+  "When serving a burger, what questions should you ask the customer?",
+  "What comes in the chipotle chicken wrap (be specific on the chicken type)?",
+  "What comes in the buffalo chicken wrap (be specific on the chicken type)?",
+  "What comes in the Chicken Caesar wrap (be specific on the chicken type)?",
+  "What garnish comes with burgers?",
+  "Describe the Zazzo's Burger.",
+  "Describe the Chicken Parm.",
+  "Describe the Eggplant Parm.",
+  "Describe the Chicken TBM.",
+  "Describe the Western Burger.",
+  "Describe the Boss Burger."
+]},
+{ day:4, cat:"Pastas", qs:[
+  "What are the side options for each of the pastas?",
+  "What is served with each pasta option?",
+  "What is the difference between the chicken tetrazzini and the chicken and mushroom pasta?",
+  "What are the options for both chicken parmesan and eggplant parmesan?",
+  "What is Zazzo's Ravioli?",
+  "What is the Penne Arrabbiata?",
+  "Describe gnocchi."
+]},
+{ day:4, cat:"Soup, Salads & Desserts", qs:[
+  "What are the size options for soups?",
+  "What is a soup served with?",
+  "For each salad — House, Chopped, BBQ Chicken, Caesar, Chicken Caesar, MKATS Buffalo Chicken, Caprese — list ingredients, sizes, and whether you or the cook makes it."
+]},
+{ day:4, cat:"Liquor", qs:[
+  "Name 5 different draft beers.",
+  "What is the brand name of our house wine?",
+  "List two name brands each for: vodka, rum, tequila, whiskey, gin."
+]},
+{ day:4, cat:"Coupons & VIP", qs:[
+  "How many coupons can be applied to one table?",
+  "Can different types of discounts and coupons be applied all at once?",
+  "If a customer asks about available coupons, what do you ask them?",
+  "A customer is a VIP member and wants to redeem an item — what do you do?"
+]}
+];
+
+// ---------------- RENDER ----------------
+
+function totalTaskCount(){
+  let n=0; DAYS.forEach(d=>d.sections.forEach(s=>n+=s.items.length)); return n;
+}
+function doneTaskCount(){
+  return Object.values(state.checks).filter(Boolean).length;
+}
+function dayDone(dayN){
+  const d = DAYS.find(x=>x.n===dayN);
+  let total=0, done=0;
+  d.sections.forEach((s,si)=>s.items.forEach((it,ii)=>{
+    total++;
+    const key = `d${dayN}-${si}-${ii}`;
+    if(state.checks[key]) done++;
+  }));
+  return {total, done};
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const totalTasks = totalTaskCount();
+  const done = doneTaskCount();
+  const overallPct = Math.round((done/totalTasks)*100);
+
+  let html = `
+  <div class="hero">
+    <div class="eyebrow"><span class="dot"></span>New Hire Onboarding</div>
+    <h1 class="brand">Zazzo's</h1>
+    <div class="brand-sub">Four-day server training — floor, POS &amp; test prep, all in one place.</div>
+    <div class="progress-row">
+      ${[1,2,3,4].map(n=>{
+        const {total,done:dn} = dayDone(n);
+        const pct = total? Math.round((dn/total)*100):0;
+        return `<div class="slice"><i style="--fill:${pct}%"></i></div>`;
+      }).join('')}
+    </div>
+    <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>
+  </div>
+
+  <div class="tabbar">
+    ${tabBtn('schedule','Schedule')}
+    ${tabBtn('guides','POS Guides')}
+    ${tabBtn('programs','Programs')}
+    ${tabBtn('quiz','Test Prep')}
+  </div>
+
+  <div class="content">
+  `;
+
+  if(state.tab==='schedule') html += renderSchedule();
+  if(state.tab==='guides') html += renderAccordionList(GUIDES);
+  if(state.tab==='programs') html += renderAccordionList(PROGRAMS);
+  if(state.tab==='quiz') html += renderQuiz();
+
+  html += `</div>
+  <div class="footnote">Zazzo's internal training tool · progress saves on this device</div>
+  `;
+
+  app.innerHTML = html;
+  attachHandlers();
+}
+
+function tabBtn(id,label){
+  return `<button class="tabbtn ${state.tab===id?'active':''}" data-tab="${id}">${label}</button>`;
+}
+
+function renderSchedule(){
+  const d = DAYS.find(x=>x.n===state.day);
+  let html = `<div class="dayrow">`;
+  DAYS.forEach(dd=>{
+    const {total,done:dn} = dayDone(dd.n);
+    const isDone = total>0 && dn===total;
+    html += `<button class="daybtn ${state.day===dd.n?'active':''} ${isDone?'done':''}" data-day="${dd.n}">
+      <b>Day ${dd.n}</b>${dd.n===state.day?'':''}
+    </button>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="ticket">
+    <div class="ticket-head">
+      <div class="ticket-title">${d.title}</div>
+      <div class="ticket-tag">${d.tag}</div>
+    </div>
+    <div class="ticket-obj">${d.objective}</div>`;
+
+  d.sections.forEach((s,si)=>{
+    html += `<div class="block">
+      <div class="block-h">${s.h} <span class="hrs">— ${s.hrs}</span></div>`;
+    s.items.forEach((it,ii)=>{
+      const key = `d${d.n}-${si}-${ii}`;
+      const on = !!state.checks[key];
+      html += `<div class="item ${on?'done':''}" data-check="${key}">
+        <div class="check ${on?'on':''}"></div><span>${it}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  if(d.note){
+    html += `<div class="callout">${d.note}</div>`;
+  }
+  if(d.testPrep){
+    html += `<div class="callout"><b>Study for tomorrow's test:</b> ${d.testPrep}</div>`;
+  }
+  if(d.final){
+    html += `<div class="callout"><b>End of Day 4:</b> ${d.final}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderAccordionList(list){
+  let html='';
+  list.forEach(g=>{
+    const open = !!state.openAcc[g.id];
+    html += `<div class="accordion ${open?'open':''}" data-acc="${g.id}">
+      <div class="acc-head">
+        <div>
+          <div class="acc-title">${g.title}</div>
+          <div class="acc-meta">${g.meta}</div>
+        </div>
+        <div class="acc-arrow">▾</div>
+      </div>
+      <div class="acc-body">${g.body}</div>
+    </div>`;
+  });
+  return html;
+}
+
+function renderQuiz(){
+  const days = [2,3,4];
+  let html = `<div class="day-pill-row">`;
+  days.forEach(n=>{
+    html += `<button class="pill ${state.quizDay===n || (!state.quizDay && n===2)?'active':''}" data-qday="${n}">Day ${n}</button>`;
+  });
+  html += `</div>`;
+
+  const activeDay = state.quizDay || 2;
+  const cats = QUIZ.filter(q=>q.day===activeDay);
+
+  cats.forEach(cat=>{
+    html += `<div class="quiz-card">
+      <div class="quiz-cat">${cat.cat}</div>`;
+    cat.qs.forEach((q,qi)=>{
+      const key = `${cat.day}-${cat.cat}-${qi}`;
+      const on = !!state.quizChecks[key];
+      const ans = state.answers[key] || '';
+      html += `<div class="qrow">
+        <div class="qtext">
+          <div class="qcheck ${on?'on':''}" data-qcheck="${key}"></div>
+          <span>${q}</span>
+        </div>
+        <textarea class="answer" placeholder="Your answer / notes…" data-answer="${key}">${ans}</textarea>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
+function attachHandlers(){
+  document.querySelectorAll('[data-tab]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; render(); });
+  });
+  document.querySelectorAll('[data-day]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.day = parseInt(el.dataset.day); render(); });
+  });
+  document.querySelectorAll('[data-check]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const k = el.dataset.check;
+      state.checks[k] = !state.checks[k];
+      saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-acc]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const k = el.dataset.acc;
+      state.openAcc[k] = !state.openAcc[k];
+      render();
+    });
+  });
+  document.querySelectorAll('[data-qday]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.quizDay = parseInt(el.dataset.qday); render(); });
+  });
+  document.querySelectorAll('[data-qcheck]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const k = el.dataset.qcheck;
+      state.quizChecks[k] = !state.quizChecks[k];
+      saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-answer]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      const k = el.dataset.answer;
+      state.answers[k] = el.value;
+    });
+    el.addEventListener('blur', saveState);
+  });
+}
+
+loadState();
+</script>
+</body>
+</html>
