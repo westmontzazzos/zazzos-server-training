@@ -1512,7 +1512,7 @@ function render(){
     const overallPct = Math.round((done/totalTasks)*100);
     html += `
     <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
-    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${trainee.start_date} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">not you?</a></div>
+    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">not you?</a></div>
     <div class="progress-row">
       ${[1,2,3,4].map(n=>{
         const {total,done:dn} = dayDone(n);
@@ -1657,6 +1657,11 @@ function dateStrToISO(s){
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
   if(!m) return null;
   return `${m[3]}-${m[1]}-${m[2]}`;
+}
+function isoToDateStr(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');
+  if(!m) return iso;
+  return `${m[2]}/${m[3]}/${m[1]}`;
 }
 
 function attachSignInHandlers(){
@@ -1857,7 +1862,7 @@ function renderResults(){
       const pct = total? Math.round((done/total)*100) : 0;
       html += `<div class="quiz-card">
         <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(t.name)}</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Started ${t.start_date}</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Started ${isoToDateStr(t.start_date)}</div>
         <div class="slice" style="height:8px;"><i style="--fill:${pct}%"></i></div>
         <div style="font-size:13px; color:var(--muted); margin-top:6px;">${done}/${total} onboarding tasks · ${pct}%</div>
       </div>`;
