@@ -1681,6 +1681,34 @@ function renderBartenderHub(){
       <div class="sub">Bartender</div>
     </div>
     <div class="home-tiles">
+      <button class="home-tile" data-tab="newhire">
+        <div class="ht-icon">🧑‍🍳</div>
+        <div class="ht-body">
+          <div class="ht-title">Start a New Hire</div>
+          <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="schedule">
+        <div class="ht-icon">📋</div>
+        <div class="ht-body">
+          <div class="ht-title">Schedule</div>
+          <div class="ht-sub">The four-day plan, day by day, with checklists.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="programs">
+        <div class="ht-icon">🎟️</div>
+        <div class="ht-body">
+          <div class="ht-title">Programs</div>
+          <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="guides">
+        <div class="ht-icon">🧾</div>
+        <div class="ht-body">
+          <div class="ht-title">POS Guides</div>
+          <div class="ht-sub">Step-by-step for entering orders, loyalty, splitting checks.</div>
+        </div>
+      </button>
       <button class="home-tile" data-tab="bar-guide">
         <div class="ht-icon">🍷</div>
         <div class="ht-body">
@@ -1692,19 +1720,23 @@ function renderBartenderHub(){
         <div class="ht-icon">📝</div>
         <div class="ht-body">
           <div class="ht-title">Testing</div>
-          <div class="ht-sub">Study Guide and sending the specialty-drinks test.</div>
+          <div class="ht-sub">Test Prep, Study Guide, sending tests — plus the specialty-drinks test.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="results">
         <div class="ht-icon">📊</div>
         <div class="ht-body">
           <div class="ht-title">View Results</div>
-          <div class="ht-sub">See submitted bartender tests.</div>
+          <div class="ht-sub">See submitted tests and trainee progress.</div>
         </div>
       </button>
-    </div>
-    <div class="callout" style="margin-top:16px;">
-      This covers the bar menu and a specialty-drinks test, built from your real menu data. Day-by-day training material for bartenders isn't built yet — send that over whenever you're ready and I'll add it the same way the server track works.
+      <button class="home-tile" data-tab="print">
+        <div class="ht-icon">🖨️</div>
+        <div class="ht-body">
+          <div class="ht-title">Print</div>
+          <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
+        </div>
+      </button>
     </div>
   </div>`;
 }
@@ -2138,18 +2170,39 @@ function renderLinks(){
 function renderTestingPicker(){
   if(state.role==='bartender'){
     return `<div class="home-tiles">
-      <button class="home-tile" data-homelink="bar-study">
+      <button class="home-tile" data-tab="quiz">
+        <div class="ht-icon">📚</div>
+        <div class="ht-body">
+          <div class="ht-title">Test Prep</div>
+          <div class="ht-sub">The full question bank, organized by day, with notes.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-homelink="study">
         <div class="ht-icon">🎯</div>
         <div class="ht-body">
           <div class="ht-title">Study Guide</div>
-          <div class="ht-sub">Flashcard-style practice on the bar menu.</div>
+          <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="links">
+        <div class="ht-icon">🔗</div>
+        <div class="ht-body">
+          <div class="ht-title">Send a Test</div>
+          <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-homelink="bar-study">
+        <div class="ht-icon">🍸</div>
+        <div class="ht-body">
+          <div class="ht-title">Bar Study Guide</div>
+          <div class="ht-sub">Flashcard-style practice on the bar menu — the bartender addition.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="bar-links">
         <div class="ht-icon">🔗</div>
         <div class="ht-body">
-          <div class="ht-title">Send a Test</div>
-          <div class="ht-sub">The specialty-drinks test link — copy and send.</div>
+          <div class="ht-title">Send the Bar Test</div>
+          <div class="ht-sub">The specialty-drinks test link — the bartender addition.</div>
         </div>
       </button>
     </div>`;
