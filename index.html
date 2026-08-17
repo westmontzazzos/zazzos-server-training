@@ -693,7 +693,9 @@ let state = {
   testFixedChecks: {}, // key -> bool (fixed short-answer "reviewed" marks)
   testFixedAnswers: {}, // key -> string
   results: null,      // fetched submissions for the Results tab
-  resultsLoading: false
+  resultsLoading: false,
+  trainees: null,
+  traineesLoading: false
 };
 
 // ---------------- FOCUSED TEST-LINK MODE ----------------
@@ -714,6 +716,72 @@ let leaveTimer = null;
 })();
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
 
+// ---------------- TRAINEE SIGN-IN (main app, not the test-link mode) ----------------
+const TRAINEE_KEY = 'zazzo-trainee-v1';
+let trainee = null; // {id, name, start_date} once signed in
+let signInError = null;
+let signInDraftName = '';
+let signInDraftDate = '';
+
+function loadTrainee(){
+  try{
+    const raw = localStorage.getItem(TRAINEE_KEY);
+    if(raw) trainee = JSON.parse(raw);
+  }catch(e){ trainee = null; }
+}
+function saveTraineeLocal(){
+  try{ localStorage.setItem(TRAINEE_KEY, JSON.stringify(trainee)); }catch(e){}
+}
+async function signInTrainee(name, startDate){
+  signInError = null;
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/trainees`, {
+      method:'POST',
+      headers:{
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=representation'
+      },
+      body: JSON.stringify({ name: name.trim(), start_date: startDate })
+    });
+    if(res.ok){
+      const rows = await res.json();
+      trainee = { id: rows[0].id, name: rows[0].name, start_date: rows[0].start_date };
+      saveTraineeLocal();
+    } else {
+      const err = await res.json().catch(()=>({}));
+      signInError = err.message || `Sign-in failed (${res.status}). Please try again in a moment.`;
+    }
+  }catch(e){
+    signInError = 'Could not reach the server. Check your connection and try again.';
+  }
+  render();
+}
+function signOutTrainee(){
+  trainee = null;
+  try{ localStorage.removeItem(TRAINEE_KEY); }catch(e){}
+  render();
+}
+async function syncTraineeProgress(){
+  if(!trainee) return;
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/trainees?id=eq.${trainee.id}`, {
+      method:'PATCH',
+      headers:{
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body: JSON.stringify({
+        checks: state.checks, quiz_checks: state.quizChecks, answers: state.answers,
+        updated_at: new Date().toISOString()
+      })
+    });
+  }catch(e){ console.error('progress sync failed', e); }
+}
+
 async function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -732,6 +800,7 @@ async function saveState(){
       testFixedChecks: state.testFixedChecks, testFixedAnswers: state.testFixedAnswers
     }));
   }catch(e){ console.error('save failed', e); }
+  syncTraineeProgress();
 }
 
 // ---------------- CONTENT DATA ----------------
@@ -1185,6 +1254,11 @@ function render(){
     attachFocusedHandlers();
     return;
   }
+  if(!trainee){
+    app.innerHTML = renderSignInGate();
+    attachSignInHandlers();
+    return;
+  }
   const totalTasks = totalTaskCount();
   const done = doneTaskCount();
   const overallPct = Math.round((done/totalTasks)*100);
@@ -1193,7 +1267,7 @@ function render(){
   <div class="hero">
     <div class="eyebrow"><span class="dot"></span>New Hire Onboarding</div>
     <h1 class="brand">Zazzo's</h1>
-    <div class="brand-sub">Four-day server training — floor, POS &amp; test prep, all in one place.</div>
+    <div class="brand-sub">${escapeHtml(trainee.name)} · started ${trainee.start_date} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">switch</a></div>
     <div class="progress-row">
       ${[1,2,3,4].map(n=>{
         const {total,done:dn} = dayDone(n);
@@ -1224,11 +1298,13 @@ function render(){
   if(state.tab==='results') html += renderResults();
 
   html += `</div>
-  <div class="footnote">Zazzo's internal training tool · progress saves on this device</div>
+  <div class="footnote">Zazzo's internal training tool · progress saves to this trainee's record</div>
   `;
 
   app.innerHTML = html;
   attachHandlers();
+  const switchLink = document.getElementById('switch-trainee-link');
+  if(switchLink) switchLink.addEventListener('click', (e)=>{ e.preventDefault(); signOutTrainee(); });
   if(state.tab==='test'){
     const shareUrl = `${window.location.origin}${window.location.pathname}?day=${state.testDay}`;
     const el = document.getElementById('share-link-box');
@@ -1236,9 +1312,44 @@ function render(){
   }
 }
 
+function renderSignInGate(){
+  return `<div class="focused-wrap">
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">New Hire Training</div>
+    </div>
+    <div class="gate-card">
+      <div class="ticket-obj" style="margin-bottom:0;">Enter the trainee's name and start date to begin. (The trainee can fill this in themselves, or a manager can enter it for them.)</div>
+      <input class="name-input" id="signin-name" type="text" placeholder="Trainee's full name" value="${escapeHtml(signInDraftName)}" style="margin-top:14px;">
+      <input class="name-input" id="signin-startdate" type="date" value="${signInDraftDate}">
+      ${signInError ? `<div class="callout" style="background:var(--badge-red-bg); color:var(--badge-red-fg);">${escapeHtml(signInError)}</div>` : ''}
+      <button class="start-btn" id="signin-btn" ${(signInDraftName.trim() && signInDraftDate) ? '' : 'disabled'}>Continue</button>
+    </div>
+  </div>`;
+}
+function attachSignInHandlers(){
+  const nameEl = document.getElementById('signin-name');
+  const dateEl = document.getElementById('signin-startdate');
+  const btn = document.getElementById('signin-btn');
+  function checkReady(){
+    signInDraftName = nameEl.value;
+    signInDraftDate = dateEl.value;
+    btn.disabled = !(nameEl.value.trim() && dateEl.value);
+  }
+  nameEl.addEventListener('input', checkReady);
+  dateEl.addEventListener('input', checkReady);
+  btn.addEventListener('click', ()=>{
+    if(!nameEl.value.trim() || !dateEl.value) return;
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    signInTrainee(nameEl.value, dateEl.value);
+  });
+}
+
 function tabBtn(id,label){
   return `<button class="tabbtn ${state.tab===id?'active':''}" data-tab="${id}">${label}</button>`;
 }
+
 
 function renderSchedule(){
   const d = DAYS.find(x=>x.n===state.day);
@@ -1380,7 +1491,37 @@ function renderResults(){
     state.resultsLoading = true;
     fetchResults();
   }
+  if(state.trainees === undefined || state.trainees === null){
+    if(!state.traineesLoading){
+      state.traineesLoading = true;
+      fetchTrainees();
+    }
+  }
+
   let html = `<div class="score-bar" style="margin-bottom:14px;">
+    <div><div class="lbl">Trainee progress</div></div>
+    <button class="newset-btn" data-refreshtrainees="1">Refresh</button>
+  </div>`;
+
+  if(state.traineesLoading && !state.trainees){
+    html += `<div class="ticket-obj" style="padding:0 4px 14px;">Loading trainees…</div>`;
+  } else if(!state.trainees || state.trainees.length===0){
+    html += `<div class="callout" style="margin-bottom:16px;">No trainees signed in yet.</div>`;
+  } else {
+    const total = totalTaskCount();
+    state.trainees.forEach(t=>{
+      const done = Object.values(t.checks||{}).filter(Boolean).length;
+      const pct = total? Math.round((done/total)*100) : 0;
+      html += `<div class="quiz-card">
+        <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(t.name)}</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Started ${t.start_date}</div>
+        <div class="slice" style="height:8px;"><i style="--fill:${pct}%"></i></div>
+        <div style="font-size:13px; color:var(--muted); margin-top:6px;">${done}/${total} onboarding tasks · ${pct}%</div>
+      </div>`;
+    });
+  }
+
+  html += `<div class="score-bar" style="margin:20px 0 14px;">
     <div><div class="lbl">Submitted tests</div></div>
     <button class="newset-btn" data-refreshresults="1">Refresh</button>
   </div>`;
@@ -1426,6 +1567,23 @@ async function fetchResults(){
     state.results = [];
   }
   state.resultsLoading = false;
+  if(state.tab==='results') render();
+}
+async function fetchTrainees(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/trainees?select=*&order=created_at.desc&limit=200`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(res.ok){
+      state.trainees = await res.json();
+    } else {
+      state.trainees = [];
+    }
+  }catch(e){
+    console.error('fetchTrainees failed', e);
+    state.trainees = [];
+  }
+  state.traineesLoading = false;
   if(state.tab==='results') render();
 }
 
@@ -1676,10 +1834,13 @@ function attachFocusedHandlers(){
 
 function attachHandlers(){
   document.querySelectorAll('[data-tab]').forEach(el=>{
-    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; if(state.tab==='results') state.results=null; render(); });
+    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
   });
   document.querySelectorAll('[data-refreshresults]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.results = null; state.resultsLoading=false; render(); });
+  });
+  document.querySelectorAll('[data-refreshtrainees]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.trainees = null; state.traineesLoading=false; render(); });
   });
   document.querySelectorAll('[data-day]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.day = parseInt(el.dataset.day); render(); });
@@ -1754,6 +1915,7 @@ function attachHandlers(){
   });
 }
 
+loadTrainee();
 loadState();
 </script>
 </body>
