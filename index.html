@@ -1387,7 +1387,7 @@ const QUIZ = [
   "How many pieces come in the jumbo shrimp dinner?",
   "How many pieces come in the Broasted Chicken Dinner, and what kind of pieces are they?",
   "What are the side options for all entrées?",
-  "Describe the Chicken and Veggie Dinner.",
+  "Describe the Grilled Chicken with Mixed Vegetables.",
   "Describe the Sausage and Peppers Platter.",
   "How many pieces of shrimp come with the Rib and Shrimp Dinner?",
   "Describe what \"broasted\" means.",
@@ -1420,7 +1420,7 @@ const QUIZ = [
 { day:4, cat:"Soup, Salads & Desserts", qs:[
   "What are the size options for soups?",
   "What is a soup served with?",
-  "For each salad — House, Chopped, BBQ Chicken, Caesar, Chicken Caesar, MKATS Buffalo Chicken, Caprese — list ingredients, sizes, and whether you or the cook makes it.",
+  "For each salad — House, Chopped, BBQ Chicken, Caesar, Chicken Caesar, M'Kats Buffalo Chicken, Caprese — list ingredients, sizes, and whether you or the cook makes it.",
   "What are our dressing options?"
 ]},
 { day:4, cat:"Liquor", qs:[
@@ -1485,11 +1485,26 @@ const FIXED_MC_BANK = {
     { prompt: "What size options do we offer for soup?", correct: "Cup or Bowl", decoys: ["Small or Large only", "12 oz. cup only, no bowl", "Bowl only — no cup size"] },
     { prompt: "On dishes where it's included, soup can be chosen instead of which side?", correct: "The house salad", decoys: ["The bread basket", "French fries", "A side of pasta"] }
   ],
-  PizzaCrust: [
+  'Pizza Crust': [
     { prompt: "Which crust style is baked in a deep pan with the sauce layered on top instead of under the cheese?", correct: "Deep Dish", decoys: ["Thin Crust", "Sicilian", "Stuffed"] },
     { prompt: "Which crust style is pie cut, but has a much thicker, bread-like crust than our regular pizza?", correct: "Sicilian", decoys: ["Thin Crust", "Deep Dish", "Stuffed"] },
     { prompt: "Which crust style has two layers of dough with cheese and toppings baked in between?", correct: "Stuffed", decoys: ["Thin Crust", "Sicilian", "Deep Dish"] },
     { prompt: "Which is our standard, everyday crust?", correct: "Thin Crust", decoys: ["Deep Dish", "Stuffed", "Sicilian"] }
+  ],
+  'VIP Program': [
+    { prompt: "What code does a VIP member enter in the app to redeem an item?", correct: "1234", decoys: ["4321", "0000", "VIP1"] },
+    { prompt: "How many VIP redemptions is a member allowed per day?", correct: "3", decoys: ["1", "5", "Unlimited"] },
+    { prompt: "How does a server apply a redeemed VIP item to the ticket?", correct: "Full Review → Coupon tab → VIP Coupons → select and apply", decoys: ["Manually type in a discount amount", "Call a manager to comp the item", "Apply it as a Text Club coupon instead"] }
+  ],
+  'Text Club': [
+    { prompt: "How does a customer join the Text Club?", correct: "Scan the QR code on a To-Go menu, or text ZAZZOS to (833) 391-7070", decoys: ["Sign up on the website only", "Ask a manager to add their number", "Download a separate app"] },
+    { prompt: "How many Text Club codes can be redeemed per visit?", correct: "One", decoys: ["Two", "Three", "Unlimited"] },
+    { prompt: "What's the Text Club new-member offer?", correct: "20% off their first order", decoys: ["A free appetizer only", "10% off every order", "A free dessert on signup"] }
+  ],
+  'Pizza Club': [
+    { prompt: "How many 16\" one-topping pizzas does Pizza Club include per month?", correct: "3", decoys: ["1", "2", "5"] },
+    { prompt: "What happens to unused Pizza Club pizzas at the end of the month?", correct: "They roll over to the next month", decoys: ["They expire", "They convert to a cash credit", "They double the next month"] },
+    { prompt: "What is the Pizza Club redemption code?", correct: "1234", decoys: ["4321", "0000", "PZC1"] }
   ]
 };
 function genFixedMCQuestion(cat, qIndex){
@@ -1501,9 +1516,12 @@ function genFixedMCQuestion(cat, qIndex){
 
 const TEST_DAY_CONFIG = {
   2: { mc:[{label:'Specialty Pizzas', source:'specialtypizza', cat:'Pizzas', n:4}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:4},
-           {label:'Pizza Crust', source:'fixedmc', cat:'PizzaCrust', n:2}, {label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:1}],
+           {label:'Pizza Crust', source:'fixedmc', cat:'Pizza Crust', n:2}, {label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:1},
+           {label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:2}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:2},
+           {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
        fixedCats:['Specials','Loyalty Program'] },
-  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:4}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:4}],
+  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:3}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:3},
+           {label:'Burgers', source:'dinein', cat:'Burgers', n:2}, {label:'Wraps', source:'dinein', cat:'Wraps', n:2}],
        fixedCats:[] },
   4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:4}, {label:'Desserts', source:'dinein', cat:'Desserts', n:3},
            {label:'Salads', source:'dinein', cat:'Salads', n:3}, {label:'Soup', source:'fixedmc', cat:'Soup', n:2}],
