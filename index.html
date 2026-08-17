@@ -667,6 +667,19 @@
   }
   .end-screen.fail p{ color:var(--badge-red-fg); }
 
+  .link-box{
+    font-family:'Inter',monospace;
+    font-size:12.5px;
+    background:var(--bg);
+    border-radius:8px;
+    padding:9px 11px;
+    word-break:break-all;
+    user-select:all;
+    cursor:pointer;
+    border:1px solid var(--hair);
+  }
+  .link-box.copied{ border-color:var(--green); background:var(--badge-green-bg); }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -706,12 +719,21 @@ let testPhase = 'gate';   // 'gate' -> 'testing' -> 'submitted' | 'failed'
 let traineeName = '';
 let leaveTimer = null;
 
+// A link like  ?prep=2  opens a plain, ungraded practice/study view for that day.
+// No name, no lockdown, no tracking — just the study questions.
+let practiceMode = false;
+let practiceDay = null;
+
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
+  const p = parseInt(params.get('prep'));
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
+  } else if(p && TEST_DAY_CONFIG_KEYS_OK(p)){
+    practiceMode = true;
+    practiceDay = p;
   }
 })();
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
@@ -1254,6 +1276,11 @@ function render(){
     attachFocusedHandlers();
     return;
   }
+  if(practiceMode){
+    app.innerHTML = renderPracticeView();
+    attachHandlers();
+    return;
+  }
   if(!trainee){
     app.innerHTML = renderSignInGate();
     attachSignInHandlers();
@@ -1284,6 +1311,7 @@ function render(){
     ${tabBtn('programs','Programs')}
     ${tabBtn('quiz','Test Prep')}
     ${tabBtn('test','Test')}
+    ${tabBtn('links','Links')}
     ${tabBtn('results','Results')}
   </div>
 
@@ -1295,6 +1323,7 @@ function render(){
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS);
   if(state.tab==='quiz') html += renderQuiz();
   if(state.tab==='test') html += renderTest();
+  if(state.tab==='links') html += renderLinks();
   if(state.tab==='results') html += renderResults();
 
   html += `</div>
@@ -1587,6 +1616,25 @@ async function fetchTrainees(){
   if(state.tab==='results') render();
 }
 
+function renderLinks(){
+  const base = `${window.location.origin}${window.location.pathname}`;
+  let html = `<div class="callout" style="margin-top:0;">
+    Send trainees the <b>Test</b> link for whichever day they're on. The <b>Practice</b> link is optional — ungraded, no name needed, just study questions. Trainees never see anything else in this app.
+  </div>`;
+  [2,3,4].forEach(day=>{
+    const testUrl = `${base}?day=${day}`;
+    const prepUrl = `${base}?prep=${day}`;
+    html += `<div class="quiz-card">
+      <div class="quiz-cat">Day ${day}</div>
+      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
+      <div class="link-box" data-copylink="${testUrl}">${testUrl}</div>
+      <div style="font-size:13px; font-weight:700; margin:12px 0 4px;">Practice (ungraded, optional)</div>
+      <div class="link-box" data-copylink="${prepUrl}">${prepUrl}</div>
+    </div>`;
+  });
+  return html;
+}
+
 function renderQuiz(){
   const days = [2,3,4];
   let html = `<div class="day-pill-row">`;
@@ -1615,6 +1663,37 @@ function renderQuiz(){
     });
     html += `</div>`;
   });
+  return html;
+}
+
+// ---------------- PRACTICE LINK (ungraded, no name, no lockdown) ----------------
+
+function renderPracticeView(){
+  const day = practiceDay;
+  const cats = QUIZ.filter(q=>q.day===day);
+  let html = `<div class="focused-wrap">
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">Day ${day} Practice — just for studying, not graded</div>
+    </div>`;
+  cats.forEach(cat=>{
+    html += `<div class="quiz-card">
+      <div class="quiz-cat">${cat.cat}</div>`;
+    cat.qs.forEach((q,qi)=>{
+      const key = `${cat.day}-${cat.cat}-${qi}`;
+      const on = !!state.quizChecks[key];
+      const ans = state.answers[key] || '';
+      html += `<div class="qrow">
+        <div class="qtext">
+          <div class="qcheck ${on?'on':''}" data-qcheck="${key}"></div>
+          <span>${q}</span>
+        </div>
+        <textarea class="answer" placeholder="Your answer / notes…" data-answer="${key}">${ans}</textarea>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
   return html;
 }
 
@@ -1841,6 +1920,20 @@ function attachHandlers(){
   });
   document.querySelectorAll('[data-refreshtrainees]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.trainees = null; state.traineesLoading=false; render(); });
+  });
+  document.querySelectorAll('[data-copylink]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const url = el.dataset.copylink;
+      const done = ()=>{
+        const original = el.textContent;
+        el.classList.add('copied');
+        el.textContent = 'Copied!';
+        setTimeout(()=>{ el.classList.remove('copied'); el.textContent = original; }, 1200);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(done).catch(()=>{});
+      }
+    });
   });
   document.querySelectorAll('[data-day]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.day = parseInt(el.dataset.day); render(); });
