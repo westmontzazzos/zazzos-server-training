@@ -984,7 +984,7 @@ const TEST_DAY_CONFIG = {
        fixedCats:[] },
   4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:4}, {label:'Desserts', source:'dinein', cat:'Desserts', n:3},
            {label:'Salads', source:'dinein', cat:'Salads', n:3}, {label:'Liquor', source:'liquor', cat:'RANDOM', n:4}],
-       fixedCats:['Coupons & VIP'] }
+       fixedCats:['Soup, Salads & Desserts','Coupons & VIP'] }
 };
 
 function shuffleArr(arr){
@@ -1214,7 +1214,7 @@ function renderTest(){
   });
 
   if(cfg.fixedCats.length){
-    html += `<div class="fixed-label">Fixed questions — Loyalty, VIP, Text &amp; Pizza Club policies</div>`;
+    html += `<div class="fixed-label">Fixed questions — policies &amp; standards, not menu-item lookups</div>`;
     const cats = QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat));
     cats.forEach(cat=>{
       html += `<div class="quiz-card">
