@@ -52,20 +52,14 @@
     position:relative;
     background:var(--card);
     border-bottom:1px solid var(--hair);
+    text-align:center;
   }
   .hero::before{ content:none; }
   .eyebrow{
-    font-family:'Inter', sans-serif;
-    font-weight:700;
-    font-size:11px;
-    letter-spacing:0.12em;
-    text-transform:uppercase;
-    color:var(--red);
     display:flex;
-    align-items:center;
-    gap:8px;
+    justify-content:center;
+    margin-bottom:14px;
   }
-  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;}
   .home-btn{
     display:inline-flex;
     align-items:center;
@@ -85,13 +79,21 @@
     text-decoration:none;
   }
   .home-btn:active{ box-shadow:0 1px 4px rgba(20,20,20,0.1); }
+  .zazzos-word{
+    font-family:Georgia,'Times New Roman',serif;
+    font-weight:700;
+    font-size:40px;
+    color:var(--red);
+    line-height:1;
+    margin-bottom:4px;
+  }
   h1.brand{
     font-family:'Libre Baskerville', Georgia, serif;
     font-style:normal;
     font-weight:700;
-    font-size:clamp(32px,8vw,42px);
-    margin:8px 0 4px;
-    line-height:1.05;
+    font-size:22px;
+    margin:0 0 4px;
+    line-height:1.2;
     color:var(--ink);
   }
   .brand-sub{
@@ -1501,7 +1503,8 @@ function render(){
 
   let html = `
   <div class="hero">
-    <div class="eyebrow"><a href="#" data-tab="home" class="home-btn">← Home</a></div>`;
+    <div class="eyebrow"><a href="#" data-tab="home" class="home-btn">← Home</a></div>
+    <div class="zazzos-word">Zazzo's</div>`;
 
   if(trainee){
     const totalTasks = totalTaskCount();
