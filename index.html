@@ -114,8 +114,8 @@
   /* TABS (top) — persistent, DoorDash-style segmented control */
   .tabbar{
     display:flex;
-    gap:6px;
-    padding:14px 20px 14px;
+    gap:20px;
+    padding:6px 20px 0;
     overflow-x:auto;
     scrollbar-width:none;
     background:var(--card);
@@ -127,24 +127,24 @@
   .tabbar::-webkit-scrollbar{display:none;}
   .tabbtn{
     font-family:'Inter', sans-serif;
-    font-weight:700;
-    font-size:12.5px;
-    letter-spacing:0.02em;
-    text-transform:uppercase;
+    font-weight:600;
+    font-size:13.5px;
+    letter-spacing:0.01em;
     color:var(--muted);
-    background:var(--bg);
+    background:transparent;
     border:none;
-    padding:10px 16px;
-    border-radius:999px;
+    border-bottom:2px solid transparent;
+    padding:12px 2px 10px;
     cursor:pointer;
     white-space:nowrap;
   }
   .tabbtn.active{
-    color:#fff;
-    background:var(--red);
+    color:var(--ink);
+    border-bottom:2px solid var(--red);
+    font-weight:700;
   }
 
-  .content{ padding:18px 20px 10px; }
+  .content{ padding:22px 20px 10px; }
 
   /* DAY SELECTOR */
   .dayrow{
@@ -835,7 +835,7 @@ async function saveState(){
 const DAYS = [
 {
   n:1, title:"Orientation & Shadowing Basics", tag:"1 hr + 2–4 hrs floor",
-  objective:"Introduce company culture, service standards, and safety procedures — begin hands-on observation.",
+  objective:"Today is about watching and getting your bearings — nobody expects you to run a table yet. Meet the team, learn the layout, and start noticing the rhythm of a shift.",
   sections:[
     { h:"Orientation", hrs:"1 hr", items:[
       "Welcome & introductions — meet management and key team members",
@@ -866,7 +866,7 @@ const DAYS = [
 },
 {
   n:2, title:"Service Flow & POS Practice", tag:"1 hr + 2–4 hrs floor",
-  objective:"Begin light interaction with guests under supervision, continue shadowing, and learn POS operations.",
+  objective:"Yesterday you watched — today you start doing. You'll take on small pieces of service under supervision while getting comfortable with the POS.",
   sections:[
     { h:"Pre-Shift Training", hrs:"1 hr", items:[
       "Detailed POS training: clock in/out",
@@ -895,7 +895,7 @@ const DAYS = [
 },
 {
   n:3, title:"Hands-On Practice", tag:"1 hr + 2–4 hrs floor",
-  objective:"Begin actively serving 1–2 tables with trainer oversight. Reinforce guest service standards and time management.",
+  objective:"Time to carry real weight — you'll run 1–2 tables yourself with your trainer close by. This is where the pace starts to feel real.",
   sections:[
     { h:"Pre-Shift Training", hrs:"1 hr", items:[
       "Mock table scenarios: handling allergies",
@@ -924,7 +924,7 @@ const DAYS = [
 },
 {
   n:4, title:"Final Training Day — Mock Solo Shift", tag:"1 hr + 2–4 hrs eval",
-  objective:"New hire serves a small section semi-independently with trainer shadowing; readiness evaluation.",
+  objective:"Your section, mostly on your own. Your trainer's watching, not helping — this is the day that shows you (and us) that you're ready.",
   sections:[
     { h:"Pre-Shift", hrs:"1 hr", items:[
       "Review key points — more POS training (optional)",
@@ -1296,9 +1296,9 @@ function render(){
 
   let html = `
   <div class="hero">
-    <div class="eyebrow"><span class="dot"></span>New Hire Onboarding</div>
-    <h1 class="brand">Zazzo's</h1>
-    <div class="brand-sub">${escapeHtml(trainee.name)} · started ${trainee.start_date} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">switch</a></div>
+    <div class="eyebrow"><span class="dot"></span>Zazzo's · Your Training Companion</div>
+    <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
+    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${trainee.start_date} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">not you?</a></div>
     <div class="progress-row">
       ${[1,2,3,4].map(n=>{
         const {total,done:dn} = dayDone(n);
@@ -1323,8 +1323,8 @@ function render(){
   `;
 
   if(state.tab==='schedule') html += renderSchedule();
-  if(state.tab==='guides') html += renderAccordionList(GUIDES);
-  if(state.tab==='programs') html += renderAccordionList(PROGRAMS);
+  if(state.tab==='guides') html += renderAccordionList(GUIDES, "These are the exact steps for the things that come up on every shift — ringing in an order, enrolling someone in loyalty, splitting a check. Come back to this tab as often as you need to.");
+  if(state.tab==='programs') html += renderAccordionList(PROGRAMS, "Zazzo's runs three ongoing perks programs — VIP, Text Club, and Pizza Club. Guests will ask about all three, so here's how each one works and how to redeem it.");
   if(state.tab==='quiz') html += renderQuiz();
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
@@ -1386,7 +1386,8 @@ function tabBtn(id,label){
 
 function renderSchedule(){
   const d = DAYS.find(x=>x.n===state.day);
-  let html = `<div class="dayrow">`;
+  let html = `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">Four days, one section at a time. Tap a day below to see what it covers — check things off as you go, and don't worry about doing it perfectly on the first pass.</p>`;
+  html += `<div class="dayrow">`;
   DAYS.forEach(dd=>{
     const {total,done:dn} = dayDone(dd.n);
     const isDone = total>0 && dn===total;
@@ -1429,8 +1430,11 @@ function renderSchedule(){
   return html;
 }
 
-function renderAccordionList(list){
+function renderAccordionList(list, intro){
   let html='';
+  if(intro){
+    html += `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">${intro}</p>`;
+  }
   list.forEach(g=>{
     const open = !!state.openAcc[g.id];
     html += `<div class="accordion ${open?'open':''}" data-acc="${g.id}">
