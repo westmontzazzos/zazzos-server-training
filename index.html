@@ -544,7 +544,7 @@
     font-size:12px;
     text-transform:uppercase;
     letter-spacing:0.03em;
-    background:var(--ink);
+    background:var(--red);
     color:#fff;
     border:none;
     padding:9px 16px;
@@ -580,8 +580,9 @@
     display:block;
     width:100%;
     text-align:left;
-    background:var(--bg);
-    border:1.5px solid var(--hair);
+    background:var(--card);
+    border:none;
+    box-shadow:0 1px 4px rgba(20,20,20,0.06);
     border-radius:12px;
     padding:10px 14px;
     margin-bottom:8px;
@@ -593,9 +594,9 @@
   .mcopt:active:not([disabled]){ transform:scale(0.98); }
 
   .mcopt:last-child{ margin-bottom:0; }
-  .mcopt.selected{ border-color:var(--ink); }
-  .mcopt.correct{ background:var(--badge-green-bg); border-color:var(--green); color:var(--badge-green-fg); font-weight:600; }
-  .mcopt.wrong{ background:var(--badge-red-bg); border-color:var(--red); color:var(--badge-red-fg); }
+  .mcopt.selected{ box-shadow:0 0 0 2px var(--ink); }
+  .mcopt.correct{ background:var(--badge-green-bg); box-shadow:0 0 0 2px var(--green); color:var(--badge-green-fg); font-weight:600; }
+  .mcopt.wrong{ background:var(--badge-red-bg); box-shadow:0 0 0 2px var(--red); color:var(--badge-red-fg); }
   .mcopt[disabled]{ cursor:default; }
   .fixed-label{
     font-family:'Inter',sans-serif;
@@ -797,14 +798,16 @@
     font-size:13px;
     padding:10px 16px;
     border-radius:999px;
-    border:1.5px solid var(--hair);
-    background:var(--bg);
+    border:none;
+    background:var(--card);
+    box-shadow:var(--card-shadow);
     color:var(--muted);
     cursor:pointer;
   }
+  .topic-tile:active{ transform:scale(0.97); }
   .topic-tile.on{
     background:var(--red);
-    border-color:var(--red);
+    box-shadow:var(--card-shadow);
     color:#fff;
   }
 
@@ -1624,12 +1627,33 @@ function renderSignInGate(){
     <div class="gate-card">
       <div class="ticket-obj" style="margin-bottom:0;">Enter the trainee's name and start date to begin. (The trainee can fill this in themselves, or a manager can enter it for them.)</div>
       <input class="name-input" id="signin-name" type="text" placeholder="Trainee's full name" value="${escapeHtml(signInDraftName)}" style="margin-top:14px;">
-      <input class="name-input" id="signin-startdate" type="date" value="${signInDraftDate}">
+      <input class="name-input" id="signin-startdate" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" value="${escapeHtml(signInDraftDate)}">
+      <div style="font-size:12px; color:var(--muted); margin:-8px 0 14px;">Format: MM/DD/YYYY</div>
       ${signInError ? `<div class="callout" style="background:var(--badge-red-bg); color:var(--badge-red-fg);">${escapeHtml(signInError)}</div>` : ''}
-      <button class="start-btn" id="signin-btn" ${(signInDraftName.trim() && signInDraftDate) ? '' : 'disabled'}>Continue</button>
+      <button class="start-btn" id="signin-btn" ${(signInDraftName.trim() && isValidDateStr(signInDraftDate)) ? '' : 'disabled'}>Continue</button>
     </div>
   </div>`;
 }
+function formatDateInput(raw){
+  const digits = raw.replace(/\D/g,'').slice(0,8);
+  let out = digits;
+  if(digits.length > 4) out = digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+  else if(digits.length > 2) out = digits.slice(0,2)+'/'+digits.slice(2);
+  return out;
+}
+function isValidDateStr(s){
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if(!m) return false;
+  const mo = parseInt(m[1]), da = parseInt(m[2]), yr = parseInt(m[3]);
+  if(mo<1||mo>12||da<1||da>31||yr<2000||yr>2100) return false;
+  return true;
+}
+function dateStrToISO(s){
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if(!m) return null;
+  return `${m[3]}-${m[1]}-${m[2]}`;
+}
+
 function attachSignInHandlers(){
   const homeLink = document.getElementById('signin-home-link');
   if(homeLink) homeLink.addEventListener('click', (e)=>{ e.preventDefault(); state.tab='home'; render(); });
@@ -1638,16 +1662,21 @@ function attachSignInHandlers(){
   const btn = document.getElementById('signin-btn');
   function checkReady(){
     signInDraftName = nameEl.value;
-    signInDraftDate = dateEl.value;
-    btn.disabled = !(nameEl.value.trim() && dateEl.value);
+    btn.disabled = !(nameEl.value.trim() && isValidDateStr(dateEl.value));
   }
   nameEl.addEventListener('input', checkReady);
-  dateEl.addEventListener('input', checkReady);
+  dateEl.addEventListener('input', ()=>{
+    const caretWasAtEnd = dateEl.selectionStart === dateEl.value.length;
+    dateEl.value = formatDateInput(dateEl.value);
+    if(caretWasAtEnd) dateEl.setSelectionRange(dateEl.value.length, dateEl.value.length);
+    signInDraftDate = dateEl.value;
+    checkReady();
+  });
   btn.addEventListener('click', ()=>{
-    if(!nameEl.value.trim() || !dateEl.value) return;
+    if(!nameEl.value.trim() || !isValidDateStr(dateEl.value)) return;
     btn.disabled = true;
     btn.textContent = 'Signing in…';
-    signInTrainee(nameEl.value, dateEl.value);
+    signInTrainee(nameEl.value, dateStrToISO(dateEl.value));
   });
 }
 
@@ -1925,12 +1954,18 @@ function renderPrintPicker(){
   return `<div class="callout" style="margin-top:0;">Pick what to print. Both open your browser's normal Print dialog.</div>
   <div class="home-tiles">
     <button class="home-tile" data-tab="print-packet">
-      <div class="ht-title">Print the Packet</div>
-      <div class="ht-sub">All four days, POS guides, and programs — one clean document.</div>
+      <div class="ht-icon">📦</div>
+      <div class="ht-body">
+        <div class="ht-title">Print the Packet</div>
+        <div class="ht-sub">All four days, POS guides, and programs — one clean document.</div>
+      </div>
     </button>
     <button class="home-tile" data-tab="print-test">
-      <div class="ht-title">Print a Test</div>
-      <div class="ht-sub">Pick a day, get a paper version of that day's questions.</div>
+      <div class="ht-icon">📝</div>
+      <div class="ht-body">
+        <div class="ht-title">Print a Test</div>
+        <div class="ht-sub">Pick a day, get a paper version of that day's questions.</div>
+      </div>
     </button>
   </div>`;
 }
