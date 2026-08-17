@@ -704,6 +704,70 @@
   }
   .link-box.copied{ border-color:var(--green); background:var(--badge-green-bg); }
 
+  /* Home screen tiles */
+  .home-tiles{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:6px;
+  }
+  .home-tile{
+    text-align:left;
+    background:var(--card);
+    border:1px solid var(--hair);
+    border-radius:16px;
+    padding:16px 18px;
+    box-shadow:var(--card-shadow);
+    cursor:pointer;
+  }
+  .ht-title{
+    font-family:'Libre Baskerville',serif;
+    font-weight:700;
+    font-size:17px;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  .ht-sub{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.4;
+  }
+
+  /* Study Guide topic picker */
+  .topic-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .topic-tile{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    padding:10px 16px;
+    border-radius:999px;
+    border:1.5px solid var(--hair);
+    background:var(--bg);
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .topic-tile.on{
+    background:var(--red);
+    border-color:var(--red);
+    color:#fff;
+  }
+
+  /* Print documents */
+  .print-doc{ font-family:'Inter',sans-serif; font-size:14px; line-height:1.6; color:var(--ink); }
+  .print-doc h1,.print-doc h2,.print-doc h3{ color:var(--ink); }
+  .print-doc .code{ font-family:'Inter',sans-serif; font-weight:700; }
+  @media print{
+    .hero, .tabbar, .no-print, .footnote{ display:none !important; }
+    body{ background:#fff; }
+    .content{ padding:0; }
+    .print-doc{ font-size:12px; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -718,7 +782,7 @@ const SUPABASE_URL = 'https://wkzhmfyfxlfkkqevzxvf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_B1EXocVYT57f5fpvVLONZA_YZx5trib';
 
 let state = {
-  tab: 'schedule',
+  tab: 'home',
   day: 1,
   checks: {},   // key -> bool  (day task checklist)
   quizChecks: {}, // key -> bool
@@ -743,21 +807,35 @@ let testPhase = 'gate';   // 'gate' -> 'testing' -> 'submitted' | 'failed'
 let traineeName = '';
 let leaveTimer = null;
 
+// Study Guide session state (local-only, no tracking, no name required)
+let studySelectedTopics = [];
+let studyDeck = null;
+let studyIndex = 0;
+let studyMcAnswer = null;
+let studyScore = {correct:0, total:0};
+let studySelfCheck = {gotIt:0, needsPractice:0};
+
 // A link like  ?prep=2  opens a plain, ungraded practice/study view for that day.
 // No name, no lockdown, no tracking — just the study questions.
 let practiceMode = false;
 let practiceDay = null;
 
+// A link like  ?study=1  opens the interactive study guide (topic picker + flashcards).
+let studyMode = false;
+
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
   const p = parseInt(params.get('prep'));
+  const s = params.get('study');
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
   } else if(p && TEST_DAY_CONFIG_KEYS_OK(p)){
     practiceMode = true;
     practiceDay = p;
+  } else if(s){
+    studyMode = true;
   }
 })();
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
@@ -795,6 +873,7 @@ async function signInTrainee(name, startDate){
       const rows = await res.json();
       trainee = { id: rows[0].id, name: rows[0].name, start_date: rows[0].start_date };
       saveTraineeLocal();
+      state.tab = 'schedule';
     } else {
       const err = await res.json().catch(()=>({}));
       signInError = err.message || `Sign-in failed (${res.status}). Please try again in a moment.`;
@@ -807,6 +886,7 @@ async function signInTrainee(name, startDate){
 function signOutTrainee(){
   trainee = null;
   try{ localStorage.removeItem(TRAINEE_KEY); }catch(e){}
+  state.tab = 'home';
   render();
 }
 async function syncTraineeProgress(){
@@ -1273,6 +1353,41 @@ function buildTestSet(day){
   return { mc };
 }
 
+// ---------------- STUDY GUIDE (interactive, self-directed practice) ----------------
+
+const STUDY_TOPICS = [
+  {id:'pizzas', label:'Pizzas', kind:'menu', cat:'Pizzas'},
+  {id:'apps', label:'Appetizers', kind:'menu', cat:'Appetizers'},
+  {id:'dinners', label:'Dinners', kind:'menu', cat:'Dinners'},
+  {id:'handhelds', label:'Handhelds', kind:'menu', cat:'Handhelds'},
+  {id:'pastas', label:'Pastas', kind:'menu', cat:'Pastas'},
+  {id:'salads', label:'Salads', kind:'menu', cat:'Salads'},
+  {id:'desserts', label:'Desserts', kind:'menu', cat:'Desserts'},
+  {id:'liquor', label:'Liquor', kind:'fixed', quizCats:['Liquor']},
+  {id:'programs', label:'Programs & Policies', kind:'fixed', quizCats:['Loyalty Program','Coupons & VIP','Specials','Soup, Salads & Desserts']}
+];
+
+function buildStudyDeck(topicIds){
+  let deck = [];
+  STUDY_TOPICS.filter(t=>topicIds.includes(t.id)).forEach(t=>{
+    if(t.kind==='menu'){
+      for(let i=0;i<5;i++){ deck.push(Object.assign({kind:'mc'}, genDineinQuestion(t.cat, i))); }
+    } else {
+      const seen = new Set();
+      QUIZ.filter(q=>t.quizCats.includes(q.cat)).forEach(entry=>{
+        entry.qs.forEach(q=>{
+          const key = entry.cat+'|'+q;
+          if(!seen.has(key)){
+            seen.add(key);
+            deck.push({kind:'selfcheck', cat:entry.cat, prompt:q});
+          }
+        });
+      });
+    }
+  });
+  return shuffleArr(deck);
+}
+
 // ---------------- RENDER ----------------
 
 function totalTaskCount(){
@@ -1305,18 +1420,32 @@ function render(){
     attachHandlers();
     return;
   }
-  if(!trainee){
+  if(studyMode){
+    app.innerHTML = renderStudyMode();
+    attachHandlers();
+    attachStudyHandlers();
+    return;
+  }
+  if(state.tab==='home'){
+    app.innerHTML = renderHome();
+    attachHandlers();
+    return;
+  }
+  if(state.tab==='newhire' && !trainee){
     app.innerHTML = renderSignInGate();
     attachSignInHandlers();
     return;
   }
-  const totalTasks = totalTaskCount();
-  const done = doneTaskCount();
-  const overallPct = Math.round((done/totalTasks)*100);
 
   let html = `
   <div class="hero">
-    <div class="eyebrow"><span class="dot"></span>Zazzo's · Your Training Companion</div>
+    <div class="eyebrow"><a href="#" data-tab="home" style="color:var(--red); text-decoration:none;">← Home</a> · Zazzo's</div>`;
+
+  if(trainee){
+    const totalTasks = totalTaskCount();
+    const done = doneTaskCount();
+    const overallPct = Math.round((done/totalTasks)*100);
+    html += `
     <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
     <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${trainee.start_date} · <a href="#" id="switch-trainee-link" style="color:var(--red); text-decoration:underline;">not you?</a></div>
     <div class="progress-row">
@@ -1326,7 +1455,13 @@ function render(){
         return `<div class="slice"><i style="--fill:${pct}%"></i></div>`;
       }).join('')}
     </div>
-    <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>
+    <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>`;
+  } else {
+    html += `<h1 class="brand">Server Training</h1>
+    <div class="brand-sub">Browsing the reference manual — no trainee record needed for this.</div>`;
+  }
+
+  html += `
   </div>
 
   <div class="tabbar">
@@ -1337,6 +1472,7 @@ function render(){
     ${tabBtn('test','Test')}
     ${tabBtn('links','Links')}
     ${tabBtn('results','Results')}
+    ${tabBtn('print','Print')}
   </div>
 
   <div class="content">
@@ -1349,9 +1485,12 @@ function render(){
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
   if(state.tab==='results') html += renderResults();
+  if(state.tab==='print') html += renderPrintPicker();
+  if(state.tab==='print-packet') html += renderPrintPacket();
+  if(state.tab==='print-test') html += renderPrintTest();
 
   html += `</div>
-  <div class="footnote">Zazzo's internal training tool · progress saves to this trainee's record</div>
+  <div class="footnote">Zazzo's internal training tool ${trainee ? '· progress saves to this trainee\'s record' : ''}</div>
   `;
 
   app.innerHTML = html;
@@ -1365,9 +1504,45 @@ function render(){
   }
 }
 
+function renderHome(){
+  return `<div class="focused-wrap" style="max-width:560px;">
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">Server Training</div>
+    </div>
+    <div class="home-tiles">
+      <button class="home-tile" data-tab="schedule">
+        <div class="ht-title">Review the Manual</div>
+        <div class="ht-sub">Schedule, POS guides, programs — no name needed, just browse.</div>
+      </button>
+      <button class="home-tile" data-tab="newhire">
+        <div class="ht-title">Start a New Hire</div>
+        <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
+      </button>
+      <button class="home-tile" data-homelink="study">
+        <div class="ht-title">Study Guide</div>
+        <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
+      </button>
+      <button class="home-tile" data-tab="links">
+        <div class="ht-title">Send a Test</div>
+        <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+      </button>
+      <button class="home-tile" data-tab="results">
+        <div class="ht-title">View Results</div>
+        <div class="ht-sub">See submitted tests and trainee progress.</div>
+      </button>
+      <button class="home-tile" data-tab="print">
+        <div class="ht-title">Print</div>
+        <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
+      </button>
+    </div>
+  </div>`;
+}
+
 function renderSignInGate(){
   return `<div class="focused-wrap">
     <div class="focused-head">
+      <a href="#" id="signin-home-link" style="color:var(--red); text-decoration:none; font-family:'Inter',sans-serif; font-size:13px; display:inline-block; margin-bottom:10px;">← Home</a>
       <h1>Zazzo's</h1>
       <div class="sub">New Hire Training</div>
     </div>
@@ -1381,6 +1556,8 @@ function renderSignInGate(){
   </div>`;
 }
 function attachSignInHandlers(){
+  const homeLink = document.getElementById('signin-home-link');
+  if(homeLink) homeLink.addEventListener('click', (e)=>{ e.preventDefault(); state.tab='home'; render(); });
   const nameEl = document.getElementById('signin-name');
   const dateEl = document.getElementById('signin-startdate');
   const btn = document.getElementById('signin-btn');
@@ -1646,8 +1823,14 @@ async function fetchTrainees(){
 
 function renderLinks(){
   const base = `${window.location.origin}${window.location.pathname}`;
+  const studyUrl = `${base}?study=1`;
   let html = `<div class="callout" style="margin-top:0;">
-    Send trainees the <b>Test</b> link for whichever day they're on. The <b>Practice</b> link is optional — ungraded, no name needed, just study questions. Trainees never see anything else in this app.
+    Send trainees the <b>Test</b> link for whichever day they're on. <b>Practice</b> and <b>Study Guide</b> are both optional and ungraded — no name needed. Trainees never see anything else in this app.
+  </div>`;
+  html += `<div class="quiz-card">
+    <div class="quiz-cat">Study Guide — any day</div>
+    <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Lets the trainee pick what to practice instead of a fixed list.</div>
+    <div class="link-box" data-copylink="${studyUrl}">${studyUrl}</div>
   </div>`;
   [2,3,4].forEach(day=>{
     const testUrl = `${base}?day=${day}`;
@@ -1660,6 +1843,84 @@ function renderLinks(){
       <div class="link-box" data-copylink="${prepUrl}">${prepUrl}</div>
     </div>`;
   });
+  return html;
+}
+
+function renderPrintPicker(){
+  return `<div class="callout" style="margin-top:0;">Pick what to print. Both open your browser's normal Print dialog.</div>
+  <div class="home-tiles">
+    <button class="home-tile" data-tab="print-packet">
+      <div class="ht-title">Print the Packet</div>
+      <div class="ht-sub">All four days, POS guides, and programs — one clean document.</div>
+    </button>
+    <button class="home-tile" data-tab="print-test">
+      <div class="ht-title">Print a Test</div>
+      <div class="ht-sub">Pick a day, get a paper version of that day's questions.</div>
+    </button>
+  </div>`;
+}
+
+function renderPrintPacket(){
+  let html = `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:20px;">Print This Packet</button>`;
+  html += `<div class="print-doc">`;
+  html += `<h1 style="font-family:'Libre Baskerville',serif;">Zazzo's Server Training Packet</h1>`;
+  DAYS.forEach(d=>{
+    html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Day ${d.n} — ${d.title}</h2>
+    <p style="font-style:italic; color:#444;">${d.objective}</p>`;
+    d.sections.forEach(s=>{
+      html += `<h3 style="margin-top:14px;">${s.h} (${s.hrs})</h3><ul>`;
+      s.items.forEach(it=>{ html += `<li>${it}</li>`; });
+      html += `</ul>`;
+    });
+    if(d.note) html += `<p><b>Note:</b> ${d.note}</p>`;
+    if(d.testPrep) html += `<p><b>Study for tomorrow's test:</b> ${d.testPrep}</p>`;
+    if(d.final) html += `<p><b>End of Day 4:</b> ${d.final}</p>`;
+  });
+  html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">POS Guides</h2>`;
+  GUIDES.forEach(g=>{
+    html += `<h3>${g.title}</h3><div>${g.body}</div>`;
+  });
+  html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Programs</h2>`;
+  PROGRAMS.forEach(p=>{
+    html += `<h3>${p.title}</h3><div>${p.body}</div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderPrintTest(){
+  const day = state.printTestDay || 2;
+  let html = `<div class="day-pill-row no-print">`;
+  [2,3,4].forEach(n=>{
+    html += `<button class="pill ${day===n?'active':''}" data-printtestday="${n}">Day ${n}</button>`;
+  });
+  html += `</div>`;
+  html += `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:20px;">Print This Test</button>`;
+
+  if(!state.printTestSets) state.printTestSets = {};
+  if(!state.printTestSets[day]) state.printTestSets[day] = buildTestSet(day);
+  const set = state.printTestSets[day];
+  const cfg = TEST_DAY_CONFIG[day];
+
+  html += `<div class="print-doc">`;
+  html += `<h1 style="font-family:'Libre Baskerville',serif;">Day ${day} Test — Zazzo's</h1>
+  <p>Name: _______________________  Date: _______________</p>`;
+  set.mc.forEach((q,i)=>{
+    html += `<p><b>${i+1}. (${q.cat})</b> ${q.prompt}</p><ul>`;
+    q.options.forEach((opt,oi)=>{ html += `<li>${String.fromCharCode(65+oi)}. ${opt}</li>`; });
+    html += `</ul>`;
+  });
+  if(cfg.fixedCats.length){
+    const cats = QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat));
+    let n = set.mc.length;
+    cats.forEach(cat=>{
+      cat.qs.forEach(q=>{
+        n++;
+        html += `<p><b>${n}. (${cat.cat})</b> ${q}</p><p style="border-bottom:1px solid #999; height:24px;"></p>`;
+      });
+    });
+  }
+  html += `</div>`;
   return html;
 }
 
@@ -1723,6 +1984,156 @@ function renderPracticeView(){
   });
   html += `</div>`;
   return html;
+}
+
+// ---------------- STUDY GUIDE MODE (topic picker + flashcards) ----------------
+
+function renderStudyMode(){
+  if(!studyDeck){
+    // topic picker
+    let html = `<div class="focused-wrap">
+      <div class="focused-head">
+        <h1>Zazzo's</h1>
+        <div class="sub">Study Guide</div>
+      </div>
+      <div class="gate-card">
+        <div class="ticket-obj" style="margin-bottom:14px;">What do you want to work on? Pick as many as you like — skip what you already feel solid on.</div>
+        <div class="topic-grid">`;
+    STUDY_TOPICS.forEach(t=>{
+      const on = studySelectedTopics.includes(t.id);
+      html += `<button class="topic-tile ${on?'on':''}" data-topic="${t.id}">${t.label}</button>`;
+    });
+    html += `</div>
+        <button class="start-btn" id="start-study-btn" style="margin-top:18px;" ${studySelectedTopics.length? '' : 'disabled'}>Start Studying</button>
+      </div>
+    </div>`;
+    return html;
+  }
+
+  if(studyIndex >= studyDeck.length){
+    // summary screen
+    return `<div class="focused-wrap">
+      <div class="end-screen">
+        <div class="icon">🎉</div>
+        <h2>Nice work</h2>
+        <p>
+          ${studyScore.total ? `${studyScore.correct}/${studyScore.total} correct on multiple choice.<br>` : ''}
+          ${(studySelfCheck.gotIt + studySelfCheck.needsPractice) ? `${studySelfCheck.gotIt} marked "got it," ${studySelfCheck.needsPractice} marked "need more practice."` : ''}
+        </p>
+        <button class="start-btn" id="study-again-btn" style="margin-top:18px; max-width:300px; margin-left:auto; margin-right:auto;">Study These Again</button>
+        <button class="submit-btn" id="study-change-topics-btn" style="margin-top:10px; max-width:300px; margin-left:auto; margin-right:auto; background:var(--ink);">Change Topics</button>
+      </div>
+    </div>`;
+  }
+
+  const card = studyDeck[studyIndex];
+  let html = `<div class="focused-wrap">
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">Study Guide — card ${studyIndex+1} of ${studyDeck.length}</div>
+    </div>`;
+
+  if(card.kind==='mc'){
+    html += `<div class="mcq">
+      <div class="mcq-cat">${card.cat}</div>
+      <div class="mcq-prompt">${card.prompt}</div>`;
+    card.options.forEach(opt=>{
+      let cls = 'mcopt';
+      if(studyMcAnswer){
+        if(opt===card.correct) cls += ' correct';
+        else if(opt===studyMcAnswer) cls += ' wrong';
+      }
+      html += `<button class="${cls}" ${studyMcAnswer?'disabled':''} data-studyopt="${encodeURIComponent(opt)}">${opt}</button>`;
+    });
+    html += `</div>`;
+    if(studyMcAnswer){
+      html += `<button class="submit-btn" id="study-next-btn">Next Card</button>`;
+    }
+  } else {
+    html += `<div class="mcq">
+      <div class="mcq-cat">${card.cat}</div>
+      <div class="mcq-prompt">${card.prompt}</div>
+      <div class="ticket-obj" style="margin:10px 0 0;">Think it through — check with your trainer if you're not sure, then mark how it went.</div>
+    </div>`;
+    if(!card._answered){
+      html += `<button class="mcopt" data-selfcheck="gotit" style="text-align:center; font-weight:700; color:var(--badge-green-fg); border-color:var(--green);">I've got this</button>
+      <button class="mcopt" data-selfcheck="needs" style="text-align:center; font-weight:700; color:var(--badge-red-fg); border-color:var(--red);">Still need practice</button>`;
+    } else {
+      html += `<button class="submit-btn" id="study-next-btn">Next Card</button>`;
+    }
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function attachStudyHandlers(){
+  document.querySelectorAll('[data-topic]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.topic;
+      const i = studySelectedTopics.indexOf(id);
+      if(i>=0) studySelectedTopics.splice(i,1); else studySelectedTopics.push(id);
+      render();
+    });
+  });
+  const startBtn = document.getElementById('start-study-btn');
+  if(startBtn){
+    startBtn.addEventListener('click', ()=>{
+      if(!studySelectedTopics.length) return;
+      studyDeck = buildStudyDeck(studySelectedTopics);
+      studyIndex = 0;
+      studyMcAnswer = null;
+      studyScore = {correct:0, total:0};
+      studySelfCheck = {gotIt:0, needsPractice:0};
+      render();
+    });
+  }
+  document.querySelectorAll('[data-studyopt]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(studyMcAnswer) return;
+      const opt = decodeURIComponent(el.dataset.studyopt);
+      const card = studyDeck[studyIndex];
+      studyMcAnswer = opt;
+      studyScore.total++;
+      if(opt===card.correct) studyScore.correct++;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-selfcheck]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const card = studyDeck[studyIndex];
+      if(card._answered) return;
+      card._answered = true;
+      if(el.dataset.selfcheck==='gotit') studySelfCheck.gotIt++; else studySelfCheck.needsPractice++;
+      render();
+    });
+  });
+  const nextBtn = document.getElementById('study-next-btn');
+  if(nextBtn){
+    nextBtn.addEventListener('click', ()=>{
+      studyIndex++;
+      studyMcAnswer = null;
+      render();
+    });
+  }
+  const againBtn = document.getElementById('study-again-btn');
+  if(againBtn){
+    againBtn.addEventListener('click', ()=>{
+      studyDeck = buildStudyDeck(studySelectedTopics);
+      studyIndex = 0;
+      studyMcAnswer = null;
+      studyScore = {correct:0, total:0};
+      studySelfCheck = {gotIt:0, needsPractice:0};
+      render();
+    });
+  }
+  const changeBtn = document.getElementById('study-change-topics-btn');
+  if(changeBtn){
+    changeBtn.addEventListener('click', ()=>{
+      studyDeck = null;
+      render();
+    });
+  }
 }
 
 // ---------------- FOCUSED SINGLE-DAY TEST (shared link) ----------------
@@ -1941,7 +2352,20 @@ function attachFocusedHandlers(){
 
 function attachHandlers(){
   document.querySelectorAll('[data-tab]').forEach(el=>{
-    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
+    el.addEventListener('click', (e)=>{ e.preventDefault(); state.tab = el.dataset.tab; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
+  });
+  document.querySelectorAll('[data-homelink]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const kind = el.dataset.homelink;
+      if(kind==='study'){
+        window.location.href = `${window.location.origin}${window.location.pathname}?study=1`;
+      }
+    });
+  });
+  const printBtn = document.getElementById('print-now-btn');
+  if(printBtn) printBtn.addEventListener('click', ()=>{ window.print(); });
+  document.querySelectorAll('[data-printtestday]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.printTestDay = parseInt(el.dataset.printtestday); render(); });
   });
   document.querySelectorAll('[data-refreshresults]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.results = null; state.resultsLoading=false; render(); });
