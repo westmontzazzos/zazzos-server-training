@@ -613,7 +613,10 @@
     margin:16px 0;
   }
   .name-input{
+    box-sizing:border-box;
     width:100%;
+    max-width:100%;
+    display:block;
     padding:12px 14px;
     border-radius:12px;
     border:1.5px solid var(--hair);
@@ -621,11 +624,23 @@
     color:var(--ink);
     font-family:'Inter',sans-serif;
     font-size:16px;
-    margin-bottom:14px;
+    margin:0 0 14px;
     accent-color:var(--red);
   }
+  .name-input:not([type="date"]){
+    -webkit-appearance:none;
+    appearance:none;
+  }
   .name-input:focus{ outline:2px solid var(--red); }
-  .name-input[type="date"]{ color:var(--ink); }
+  .name-input:-webkit-autofill,
+  .name-input:-webkit-autofill:hover,
+  .name-input:-webkit-autofill:focus{
+    -webkit-text-fill-color:var(--ink);
+    -webkit-box-shadow:0 0 0 1000px #fff inset;
+    box-shadow:0 0 0 1000px #fff inset;
+    transition:background-color 5000s ease-in-out 0s;
+  }
+  .name-input[type="date"]{ color:var(--ink); box-sizing:border-box; width:100%; max-width:100%; }
   .name-input[type="date"]:invalid, .name-input[type="date"]:required:invalid{ color:var(--muted); }
   .start-btn{
     width:100%;
