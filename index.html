@@ -572,6 +572,101 @@
     margin:18px 0 8px;
   }
 
+  /* Focused test-link mode */
+  .focused-wrap{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .focused-head{
+    text-align:center;
+    margin-bottom:20px;
+  }
+  .focused-head h1{
+    font-family:'Libre Baskerville', Georgia, serif;
+    font-size:26px;
+    margin:0 0 4px;
+  }
+  .focused-head .sub{
+    font-family:'Inter',sans-serif;
+    color:var(--muted);
+    font-size:13.5px;
+  }
+  .gate-card{
+    background:var(--card);
+    border-radius:18px;
+    box-shadow:var(--card-shadow);
+    padding:22px 20px;
+  }
+  .policy-box{
+    background:var(--bg);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:14px;
+    line-height:1.6;
+    color:#3d3d3b;
+    margin:16px 0;
+  }
+  .name-input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1.5px solid var(--hair);
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    margin-bottom:14px;
+  }
+  .name-input:focus{ outline:2px solid var(--red); }
+  .start-btn{
+    width:100%;
+    padding:14px;
+    border-radius:999px;
+    border:none;
+    background:var(--red);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    cursor:pointer;
+  }
+  .start-btn:disabled{ background:#d5d1c8; cursor:not-allowed; }
+  .submit-btn{
+    width:100%;
+    padding:14px;
+    border-radius:999px;
+    border:none;
+    background:var(--green);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    margin-top:8px;
+  }
+  .end-screen{
+    text-align:center;
+    padding:40px 20px;
+  }
+  .end-screen .icon{ font-size:44px; margin-bottom:14px; }
+  .end-screen h2{
+    font-family:'Libre Baskerville',serif;
+    font-size:22px;
+    margin:0 0 10px;
+  }
+  .end-screen p{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:400px;
+    margin:0 auto;
+  }
+  .end-screen.fail p{ color:var(--badge-red-fg); }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -582,6 +677,9 @@
 
 <script>
 const STORAGE_KEY = 'zazzo-training-progress-v1';
+const SUPABASE_URL = 'https://wkzhmfyfxlfkkqevzxvf.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_B1EXocVYT57f5fpvVLONZA_YZx5trib';
+
 let state = {
   tab: 'schedule',
   day: 1,
@@ -593,14 +691,34 @@ let state = {
   testSets: {},      // day -> {mc:[...]} generated question set
   testMcAnswers: {}, // questionId -> selected option string
   testFixedChecks: {}, // key -> bool (fixed short-answer "reviewed" marks)
-  testFixedAnswers: {} // key -> string
+  testFixedAnswers: {}, // key -> string
+  results: null,      // fetched submissions for the Results tab
+  resultsLoading: false
 };
+
+// ---------------- FOCUSED TEST-LINK MODE ----------------
+// A link like  ?day=2  opens straight into a locked-down, single-day test session.
+let focusedMode = false;
+let focusedDay = null;
+let testPhase = 'gate';   // 'gate' -> 'testing' -> 'submitted' | 'failed'
+let traineeName = '';
+let leaveTimer = null;
+
+(function initFocusedMode(){
+  const params = new URLSearchParams(window.location.search);
+  const d = parseInt(params.get('day'));
+  if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
+    focusedMode = true;
+    focusedDay = d;
+  }
+})();
+function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
 
 async function loadState(){
   try{
-    const res = await window.storage.get(STORAGE_KEY);
-    if(res && res.value){
-      const saved = JSON.parse(res.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const saved = JSON.parse(raw);
       state = Object.assign(state, saved);
     }
   }catch(e){ /* no saved state yet */ }
@@ -608,7 +726,7 @@ async function loadState(){
 }
 async function saveState(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
       checks: state.checks, quizChecks: state.quizChecks, answers: state.answers,
       testSets: state.testSets, testMcAnswers: state.testMcAnswers,
       testFixedChecks: state.testFixedChecks, testFixedAnswers: state.testFixedAnswers
@@ -617,6 +735,7 @@ async function saveState(){
 }
 
 // ---------------- CONTENT DATA ----------------
+
 
 const DAYS = [
 {
@@ -1060,6 +1179,12 @@ function dayDone(dayN){
 
 function render(){
   const app = document.getElementById('app');
+  if(focusedMode){
+    app.innerHTML = renderFocusedTest();
+    attachHandlers();
+    attachFocusedHandlers();
+    return;
+  }
   const totalTasks = totalTaskCount();
   const done = doneTaskCount();
   const overallPct = Math.round((done/totalTasks)*100);
@@ -1085,6 +1210,7 @@ function render(){
     ${tabBtn('programs','Programs')}
     ${tabBtn('quiz','Test Prep')}
     ${tabBtn('test','Test')}
+    ${tabBtn('results','Results')}
   </div>
 
   <div class="content">
@@ -1095,6 +1221,7 @@ function render(){
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS);
   if(state.tab==='quiz') html += renderQuiz();
   if(state.tab==='test') html += renderTest();
+  if(state.tab==='results') html += renderResults();
 
   html += `</div>
   <div class="footnote">Zazzo's internal training tool · progress saves on this device</div>
@@ -1102,6 +1229,11 @@ function render(){
 
   app.innerHTML = html;
   attachHandlers();
+  if(state.tab==='test'){
+    const shareUrl = `${window.location.origin}${window.location.pathname}?day=${state.testDay}`;
+    const el = document.getElementById('share-link-box');
+    if(el) el.textContent = shareUrl;
+  }
 }
 
 function tabBtn(id,label){
@@ -1189,10 +1321,15 @@ function renderTest(){
   });
   html += `</div>`;
 
+  html += `<div class="callout" style="margin-top:0;">
+    <b>Send this test:</b> share the link below — it opens straight into this day's test, locked to just that screen.
+    <div id="share-link-box" style="font-family:'Inter',monospace; font-size:12.5px; background:#fff; border-radius:8px; padding:8px 10px; margin-top:8px; word-break:break-all; user-select:all;"></div>
+  </div>`;
+
   html += `<div class="score-bar">
     <div>
       <div class="num">${correctCount}/${set.mc.length}</div>
-      <div class="lbl">correct · ${answered}/${set.mc.length} answered</div>
+      <div class="lbl">correct · ${answered}/${set.mc.length} answered — this is just your preview, not a submitted result</div>
     </div>
     <button class="newset-btn" data-newset="${day}">New Random Set</button>
   </div>`;
@@ -1238,6 +1375,60 @@ function renderTest(){
   return html;
 }
 
+function renderResults(){
+  if(state.results === null && !state.resultsLoading){
+    state.resultsLoading = true;
+    fetchResults();
+  }
+  let html = `<div class="score-bar" style="margin-bottom:14px;">
+    <div><div class="lbl">Submitted tests</div></div>
+    <button class="newset-btn" data-refreshresults="1">Refresh</button>
+  </div>`;
+
+  if(state.resultsLoading && state.results === null){
+    html += `<div class="ticket-obj" style="padding:0 4px;">Loading submissions…</div>`;
+    return html;
+  }
+  if(!state.results || state.results.length===0){
+    html += `<div class="callout">No test submissions yet. Once someone completes (or fails) a test through a shared link, it'll show up here.</div>`;
+    return html;
+  }
+  state.results.forEach(r=>{
+    const failed = r.status === 'failed_left_page';
+    const when = new Date(r.created_at).toLocaleString();
+    html += `<div class="quiz-card">
+      <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">Day ${r.day} · ${failed?'Failed — left page':'Completed'}</div>
+      <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(r.trainee_name)}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
+      <div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>
+      ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
+    </div>`;
+  });
+  return html;
+}
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+async function fetchResults(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/test_submissions?select=*&order=created_at.desc&limit=100`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(res.ok){
+      state.results = await res.json();
+    } else {
+      state.results = [];
+    }
+  }catch(e){
+    console.error('fetchResults failed', e);
+    state.results = [];
+  }
+  state.resultsLoading = false;
+  if(state.tab==='results') render();
+}
+
 function renderQuiz(){
   const days = [2,3,4];
   let html = `<div class="day-pill-row">`;
@@ -1269,9 +1460,226 @@ function renderQuiz(){
   return html;
 }
 
+// ---------------- FOCUSED SINGLE-DAY TEST (shared link) ----------------
+
+function renderFocusedTest(){
+  const day = focusedDay;
+
+  if(testPhase === 'gate'){
+    return `<div class="focused-wrap">
+      <div class="focused-head">
+        <h1>Zazzo's</h1>
+        <div class="sub">Day ${day} Test</div>
+      </div>
+      <div class="gate-card">
+        <div class="ticket-obj" style="margin-bottom:0;">Enter your name to begin.</div>
+        <input class="name-input" id="trainee-name-input" type="text" placeholder="Your full name" value="${escapeHtml(traineeName)}" style="margin-top:14px;">
+        <div class="policy-box">
+          Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
+        </div>
+        <button class="start-btn" id="start-test-btn" ${traineeName.trim() ? '' : 'disabled'}>Start Test</button>
+      </div>
+    </div>`;
+  }
+
+  if(testPhase === 'failed'){
+    return `<div class="focused-wrap">
+      <div class="end-screen fail">
+        <div class="icon">🚫</div>
+        <h2>Test Session Closed</h2>
+        <p>${escapeHtml(state._failReason || '')}</p>
+      </div>
+    </div>`;
+  }
+
+  if(testPhase === 'submitted'){
+    return `<div class="focused-wrap">
+      <div class="end-screen">
+        <div class="icon">✅</div>
+        <h2>Test submitted</h2>
+        <p>Thanks, ${escapeHtml(traineeName)} — your Day ${day} test has been recorded. You can close this page now.</p>
+      </div>
+    </div>`;
+  }
+
+  // testPhase === 'testing'
+  if(!state.testSets[day]) state.testSets[day] = buildTestSet(day);
+  const set = state.testSets[day];
+  const cfg = TEST_DAY_CONFIG[day];
+  let answered=0, correctCount=0;
+  set.mc.forEach(q=>{
+    const a = state.testMcAnswers[q.id];
+    if(a){ answered++; if(a===q.correct) correctCount++; }
+  });
+
+  let html = `<div class="focused-wrap">
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">Day ${day} Test — ${escapeHtml(traineeName)}</div>
+    </div>`;
+
+  set.mc.forEach(q=>{
+    const selected = state.testMcAnswers[q.id];
+    html += `<div class="mcq">
+      <div class="mcq-cat">${q.cat}</div>
+      <div class="mcq-prompt">${q.prompt}</div>`;
+    q.options.forEach(opt=>{
+      let cls = 'mcopt';
+      if(selected){
+        if(opt===q.correct) cls += ' correct';
+        else if(opt===selected) cls += ' wrong';
+      }
+      html += `<button class="${cls}" ${selected?'disabled':''} data-mcanswer="${q.id}" data-mcopt="${encodeURIComponent(opt)}">${opt}</button>`;
+    });
+    html += `</div>`;
+  });
+
+  if(cfg.fixedCats.length){
+    html += `<div class="fixed-label">Short answer</div>`;
+    const cats = QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat));
+    cats.forEach(cat=>{
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${cat.cat}</div>`;
+      cat.qs.forEach((q,qi)=>{
+        const key = `test-${cat.day}-${cat.cat}-${qi}`;
+        const ans = state.testFixedAnswers[key] || '';
+        html += `<div class="qrow">
+          <div class="qtext"><span>${q}</span></div>
+          <textarea class="answer" placeholder="Answer…" data-tfanswer="${key}">${ans}</textarea>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+  }
+
+  html += `<div class="score-bar" style="margin-top:6px;">
+    <div><div class="lbl">${answered}/${set.mc.length} multiple choice answered</div></div>
+  </div>
+  <button class="submit-btn" id="submit-test-btn">Submit Test</button>
+  </div>`;
+
+  return html;
+}
+
+async function submitTestResult(status, failReason){
+  const day = focusedDay;
+  const set = state.testSets[day] || {mc:[]};
+  let mcScore = 0;
+  set.mc.forEach(q=>{ if(state.testMcAnswers[q.id]===q.correct) mcScore++; });
+  const fixedAnswersForDay = {};
+  Object.keys(state.testFixedAnswers).forEach(k=>{
+    if(k.startsWith(`test-${day}-`)) fixedAnswersForDay[k] = state.testFixedAnswers[k];
+  });
+  const payload = {
+    trainee_name: traineeName.trim(),
+    day: day,
+    status: status,
+    mc_score: mcScore,
+    mc_total: set.mc.length,
+    mc_answers: state.testMcAnswers,
+    fixed_answers: fixedAnswersForDay,
+    fail_reason: failReason || null
+  };
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/test_submissions`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+  }catch(e){ console.error('submit failed', e); }
+}
+
+function clearLeaveTimer(){
+  if(leaveTimer){ clearTimeout(leaveTimer); leaveTimer = null; }
+}
+function handleLeavePage(){
+  if(testPhase !== 'testing') return;
+  if(leaveTimer) return; // already counting down
+  leaveTimer = setTimeout(()=>{
+    leaveTimer = null;
+    if(testPhase !== 'testing') return;
+    failTest();
+  }, 3000);
+}
+function handleReturnToPage(){
+  clearLeaveTimer();
+}
+function failTest(){
+  testPhase = 'failed';
+  state._failReason = `By starting this test, ${traineeName.trim()} acknowledged the policy that this page must remain open and in view for the full duration of the test. That agreement was not upheld, so this test session has been closed and recorded as not completed.`;
+  submitTestResult('failed_left_page', state._failReason);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  window.removeEventListener('blur', onWindowBlur);
+  window.removeEventListener('focus', onWindowFocus);
+  render();
+}
+function onVisibilityChange(){
+  if(document.hidden) handleLeavePage(); else handleReturnToPage();
+}
+function onWindowBlur(){ handleLeavePage(); }
+function onWindowFocus(){ handleReturnToPage(); }
+
+function attachFocusedHandlers(){
+  const nameInput = document.getElementById('trainee-name-input');
+  if(nameInput){
+    nameInput.addEventListener('input', ()=>{
+      traineeName = nameInput.value;
+      const btn = document.getElementById('start-test-btn');
+      if(btn) btn.disabled = !traineeName.trim();
+    });
+  }
+  const startBtn = document.getElementById('start-test-btn');
+  if(startBtn){
+    startBtn.addEventListener('click', ()=>{
+      if(!traineeName.trim()) return;
+      state.testSets[focusedDay] = buildTestSet(focusedDay);
+      state.testMcAnswers = {};
+      testPhase = 'testing';
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      window.addEventListener('blur', onWindowBlur);
+      window.addEventListener('focus', onWindowFocus);
+      render();
+    });
+  }
+  document.querySelectorAll('[data-mcanswer]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const qid = el.dataset.mcanswer;
+      const opt = decodeURIComponent(el.dataset.mcopt);
+      if(state.testMcAnswers[qid]) return;
+      state.testMcAnswers[qid] = opt;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-tfanswer]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      state.testFixedAnswers[el.dataset.tfanswer] = el.value;
+    });
+  });
+  const submitBtn = document.getElementById('submit-test-btn');
+  if(submitBtn){
+    submitBtn.addEventListener('click', ()=>{
+      clearLeaveTimer();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('focus', onWindowFocus);
+      testPhase = 'submitted';
+      submitTestResult('completed', null);
+      render();
+    });
+  }
+}
+
 function attachHandlers(){
   document.querySelectorAll('[data-tab]').forEach(el=>{
-    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; render(); });
+    el.addEventListener('click', ()=>{ state.tab = el.dataset.tab; if(state.tab==='results') state.results=null; render(); });
+  });
+  document.querySelectorAll('[data-refreshresults]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.results = null; state.resultsLoading=false; render(); });
   });
   document.querySelectorAll('[data-day]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.day = parseInt(el.dataset.day); render(); });
