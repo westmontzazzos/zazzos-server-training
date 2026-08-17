@@ -263,7 +263,7 @@
     flex:0 0 20px;
     width:20px; height:20px;
     border-radius:6px;
-    border:1.5px solid #d5d1c8;
+    border:1.5px solid var(--hair);
     margin-top:1px;
     display:flex; align-items:center; justify-content:center;
     background:#fff;
@@ -279,7 +279,7 @@
     font-size:12px;
     font-weight:700;
   }
-  .item.done span{ color:var(--muted); text-decoration:line-through; text-decoration-color:#c9c5ba; }
+  .item.done span{ color:var(--muted); text-decoration:line-through; text-decoration-color:var(--hair); }
 
   .callout{
     margin-top:14px;
@@ -430,7 +430,7 @@
   .qtext .qcheck{
     flex:0 0 18px; width:18px; height:18px;
     border-radius:5px;
-    border:1.5px solid #d5d1c8;
+    border:1.5px solid var(--hair);
     margin-top:1px;
     cursor:pointer;
     background:#fff;
@@ -617,11 +617,16 @@
     padding:12px 14px;
     border-radius:12px;
     border:1.5px solid var(--hair);
+    background:#fff;
+    color:var(--ink);
     font-family:'Inter',sans-serif;
     font-size:16px;
     margin-bottom:14px;
+    accent-color:var(--red);
   }
   .name-input:focus{ outline:2px solid var(--red); }
+  .name-input[type="date"]{ color:var(--ink); }
+  .name-input[type="date"]:invalid, .name-input[type="date"]:required:invalid{ color:var(--muted); }
   .start-btn{
     width:100%;
     padding:14px;
@@ -636,7 +641,7 @@
     letter-spacing:0.03em;
     cursor:pointer;
   }
-  .start-btn:disabled{ background:#d5d1c8; cursor:not-allowed; }
+  .start-btn:disabled{ background:var(--hair); color:var(--muted); cursor:not-allowed; }
   .submit-btn{
     width:100%;
     padding:14px;
