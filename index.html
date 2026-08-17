@@ -739,11 +739,30 @@
     border-radius:8px;
     padding:9px 11px;
     word-break:break-all;
-    user-select:all;
-    cursor:pointer;
     border:1px solid var(--hair);
+    margin-bottom:8px;
   }
-  .link-box.copied{ border-color:var(--green); background:var(--badge-green-bg); }
+  .link-actions{
+    display:flex;
+    gap:8px;
+  }
+  .link-actions a, .link-actions button{
+    flex:1;
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    padding:9px 10px;
+    border-radius:999px;
+    border:none;
+    cursor:pointer;
+    text-decoration:none;
+  }
+  .link-preview-btn{ background:var(--bg); color:var(--ink); border:1.5px solid var(--hair) !important; }
+  .link-copy-btn{ background:var(--red); color:#fff; }
+  .link-copy-btn.copied{ background:var(--green); }
 
   /* Home screen tiles */
   .home-tiles{
@@ -1404,9 +1423,8 @@ const QUIZ = [
   "For each salad — House, Chopped, BBQ Chicken, Caesar, Chicken Caesar, MKATS Buffalo Chicken, Caprese — list ingredients, sizes, and whether you or the cook makes it."
 ]},
 { day:4, cat:"Liquor", qs:[
-  "Name 5 different draft beers.",
   "What is the brand name of our house wine?",
-  "List two name brands each for: vodka, rum, tequila, whiskey, gin."
+  "If a guest asks about beer or wine options, what should you be able to tell them?"
 ]},
 { day:4, cat:"Coupons & VIP", qs:[
   "How many coupons can be applied to one table?",
@@ -1558,6 +1576,18 @@ function genSingleLiquorCatQuestion(cat, qIndex){
   return { id:`slc-${cat}-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat, prompt:`Which of these is one of our current ${cat} options?`, options, correct:name };
 }
 
+const STUDY_ANSWERS = {
+  "What is the loyalty program?": "Customers earn 1 point for every $1 spent. At 100 points, they get a $5 loyalty credit, usable for dine-in, pick-up, or delivery.",
+  "How does one join?": "At the server computer, open the table, click the Customer tab, enter their phone number, fill in their name, then click the 'Zazzo's Customer Loyalty' tab (third option) and press ENROLL.",
+  "How do you ensure a customer is enrolled and earning points?": "Their phone number has to be entered in the Customer tab before the order is finalized — points are tied to that phone number automatically once enrolled.",
+  "How can they redeem points?": "At 100 points (= $5 credit), it can be applied at checkout for dine-in, pick-up, or delivery.",
+  "If a customer asks about available coupons, what do you ask them?": "Ask whether they're a VIP member, Text Club member, or Pizza Club member — each has its own coupon type and redemption steps.",
+  "A customer is a VIP member and wants to redeem an item — what do you do?": "Ask to see their VIP app, have them select the item and enter code 1234, then in Full Review go to the Coupon tab, select VIP Coupons, and apply the redeemed item.",
+  "What is the brand name of our house wine?": "Canyon Road.",
+  "What are the size options for soups?": "Cup or Bowl.",
+  "What is a soup served with?": "On dishes where it's included, soup can be chosen instead of the house salad."
+};
+
 function buildStudyDeck(topicIds){
   let deck = [];
   STUDY_TOPICS.filter(t=>topicIds.includes(t.id)).forEach(t=>{
@@ -1574,7 +1604,11 @@ function buildStudyDeck(topicIds){
           const key = entry.cat+'|'+q;
           if(!seen.has(key)){
             seen.add(key);
-            deck.push({kind:'selfcheck', cat:entry.cat, prompt:q});
+            if(STUDY_ANSWERS[q]){
+              deck.push({kind:'reveal', cat:entry.cat, prompt:q, answer:STUDY_ANSWERS[q]});
+            }
+            // Questions with no real documented answer are left out —
+            // showing them with no way to check the answer isn't studying, it's guessing.
           }
         });
       });
@@ -2360,18 +2394,26 @@ function renderTraineeHub(){
   <button class="newset-btn" id="mark-complete-btn" style="margin-top:18px; width:100%;">Mark Training Complete</button>`;
 }
 
+function renderLinkRow(url){
+  return `<div class="link-box">${url}</div>
+  <div class="link-actions" style="margin-bottom:16px;">
+    <a href="${url}" target="_blank" rel="noopener" class="link-preview-btn">Preview</a>
+    <button type="button" class="link-copy-btn" data-copylink="${url}">Copy</button>
+  </div>`;
+}
+
 function renderBarLinks(){
   const base = `${window.location.origin}${window.location.pathname}`;
   const testUrl = `${base}?btest=1`;
   const studyUrl = `${base}?study=1&role=bartender`;
-  return `<div class="callout" style="margin-top:0;">Send bartenders the <b>Test</b> link when they're ready to be checked off. <b>Study Guide</b> is optional and ungraded.</div>
+  return `<div class="callout" style="margin-top:0;">Preview shows exactly what they'll see. Copy grabs the link to paste into a text.</div>
   <div class="quiz-card">
     <div class="quiz-cat">Specialty Drinks Test — graded, tracked</div>
-    <div class="link-box" data-copylink="${testUrl}">${testUrl}</div>
+    ${renderLinkRow(testUrl)}
   </div>
   <div class="quiz-card">
     <div class="quiz-cat">Study Guide — ungraded, optional</div>
-    <div class="link-box" data-copylink="${studyUrl}">${studyUrl}</div>
+    ${renderLinkRow(studyUrl)}
   </div>`;
 }
 
@@ -2379,12 +2421,12 @@ function renderLinks(){
   const base = `${window.location.origin}${window.location.pathname}`;
   const studyUrl = `${base}?study=1`;
   let html = `<div class="callout" style="margin-top:0;">
-    Send trainees the <b>Test</b> link for whichever day they're on. <b>Practice</b> and <b>Study Guide</b> are both optional and ungraded — no name needed. Trainees never see anything else in this app.
+    Preview shows exactly what they'll see — nothing else in this app. Copy grabs the link to paste into a text.
   </div>`;
   html += `<div class="quiz-card">
     <div class="quiz-cat">Study Guide — any day</div>
     <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Lets the trainee pick what to practice instead of a fixed list.</div>
-    <div class="link-box" data-copylink="${studyUrl}">${studyUrl}</div>
+    ${renderLinkRow(studyUrl)}
   </div>`;
   [2,3,4].forEach(day=>{
     const testUrl = `${base}?day=${day}`;
@@ -2392,9 +2434,9 @@ function renderLinks(){
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
       <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
-      <div class="link-box" data-copylink="${testUrl}">${testUrl}</div>
-      <div style="font-size:13px; font-weight:700; margin:12px 0 4px;">Practice (ungraded, optional)</div>
-      <div class="link-box" data-copylink="${prepUrl}">${prepUrl}</div>
+      ${renderLinkRow(testUrl)}
+      <div style="font-size:13px; font-weight:700; margin:4px 0 4px;">Practice (ungraded, optional)</div>
+      ${renderLinkRow(prepUrl)}
     </div>`;
   });
   return html;
@@ -2678,13 +2720,15 @@ function renderStudyMode(){
     if(studyMcAnswer){
       html += `<button class="submit-btn" id="study-next-btn">Next Card</button>`;
     }
-  } else {
+  } else if(card.kind==='reveal'){
     html += `<div class="mcq">
       <div class="mcq-cat">${card.cat}</div>
       <div class="mcq-prompt">${card.prompt}</div>
-      <div class="ticket-obj" style="margin:10px 0 0;">Think it through — check with your trainer if you're not sure, then mark how it went.</div>
+      ${card._revealed ? `<div class="callout" style="margin-top:12px;">${card.answer}</div>` : ''}
     </div>`;
-    if(!card._answered){
+    if(!card._revealed){
+      html += `<button class="submit-btn" id="study-reveal-btn">Show Answer</button>`;
+    } else if(!card._answered){
       html += `<button class="mcopt" data-selfcheck="gotit" style="text-align:center; font-weight:700; color:var(--badge-green-fg); border-color:var(--green);">I've got this</button>
       <button class="mcopt" data-selfcheck="needs" style="text-align:center; font-weight:700; color:var(--badge-red-fg); border-color:var(--red);">Still need practice</button>`;
     } else {
@@ -2728,6 +2772,13 @@ function attachStudyHandlers(){
       render();
     });
   });
+  const revealBtn = document.getElementById('study-reveal-btn');
+  if(revealBtn){
+    revealBtn.addEventListener('click', ()=>{
+      studyDeck[studyIndex]._revealed = true;
+      render();
+    });
+  }
   document.querySelectorAll('[data-selfcheck]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const card = studyDeck[studyIndex];
