@@ -483,6 +483,95 @@
     line-height:1.6;
   }
 
+  /* Test tab */
+  .score-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--card);
+    border-radius:16px;
+    box-shadow:var(--card-shadow);
+    padding:14px 16px;
+    margin-bottom:14px;
+  }
+  .score-bar .num{
+    font-family:'Libre Baskerville',serif;
+    font-weight:700;
+    font-size:22px;
+    color:var(--green);
+  }
+  .score-bar .lbl{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .newset-btn{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    padding:9px 16px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .mcq{
+    background:var(--card);
+    border-radius:18px;
+    box-shadow:var(--card-shadow);
+    padding:16px 18px;
+    margin-bottom:12px;
+  }
+  .mcq-cat{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--red);
+    margin-bottom:8px;
+  }
+  .mcq-prompt{
+    font-family:'Libre Baskerville',serif;
+    font-weight:700;
+    font-size:15.5px;
+    line-height:1.4;
+    margin-bottom:12px;
+  }
+  .mcopt{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:var(--bg);
+    border:1.5px solid var(--hair);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:8px;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .mcopt:last-child{ margin-bottom:0; }
+  .mcopt.selected{ border-color:var(--ink); }
+  .mcopt.correct{ background:var(--badge-green-bg); border-color:var(--green); color:var(--badge-green-fg); font-weight:600; }
+  .mcopt.wrong{ background:var(--badge-red-bg); border-color:var(--red); color:var(--badge-red-fg); }
+  .mcopt[disabled]{ cursor:default; }
+  .fixed-label{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    margin:18px 0 8px;
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -499,7 +588,12 @@ let state = {
   checks: {},   // key -> bool  (day task checklist)
   quizChecks: {}, // key -> bool
   answers: {},  // key -> string
-  openAcc: {}   // key -> bool
+  openAcc: {},   // key -> bool
+  testDay: 2,
+  testSets: {},      // day -> {mc:[...]} generated question set
+  testMcAnswers: {}, // questionId -> selected option string
+  testFixedChecks: {}, // key -> bool (fixed short-answer "reviewed" marks)
+  testFixedAnswers: {} // key -> string
 };
 
 async function loadState(){
@@ -515,7 +609,9 @@ async function loadState(){
 async function saveState(){
   try{
     await window.storage.set(STORAGE_KEY, JSON.stringify({
-      checks: state.checks, quizChecks: state.quizChecks, answers: state.answers
+      checks: state.checks, quizChecks: state.quizChecks, answers: state.answers,
+      testSets: state.testSets, testMcAnswers: state.testMcAnswers,
+      testFixedChecks: state.testFixedChecks, testFixedAnswers: state.testFixedAnswers
     }));
   }catch(e){ console.error('save failed', e); }
 }
@@ -871,6 +967,78 @@ const QUIZ = [
 ]}
 ];
 
+// ---------------- LIVE MENU DATA (dine-in items only — no prices, no costs) ----------------
+// Pulled from the Zazzo's menu app's Supabase project. Names & descriptions only.
+const MENU_DATA = {"dinein": {"Appetizers": [{"name": "Zazzo's Platter", "size": "12 wings + 2 pretzel sticks + 4 potato skins", "desc": "12 wings + 2 pretzel sticks + 4 potato skins"}, {"name": "Cheese Fries", "size": "Fries + cheese sauce", "desc": "Fries + cheese sauce"}, {"name": "Breaded Mushrooms", "size": "breaded mushrooms | marinara dip", "desc": "breaded mushrooms | marinara dip"}, {"name": "Breaded Zucchini", "size": "breaded zucchini | marinara dip", "desc": "breaded zucchini | marinara dip"}, {"name": "Mozzarella Sticks", "size": "mozz sticks | marinara dip", "desc": "mozz sticks | marinara dip"}, {"name": "Pretzel Sticks (6pc)", "size": "Bavarian pretzel sticks | cheese sauce", "desc": "Bavarian pretzel sticks | cheese sauce"}, {"name": "Boneless Wings", "size": "Breaded boneless wings, choice of sauce", "desc": "Breaded boneless wings, choice of sauce"}, {"name": "Wings (Bone-In)", "size": "Traditional bone-in wings, choice of sauce", "desc": "Traditional bone-in wings, choice of sauce"}, {"name": "Potato Skins", "size": "Loaded potato skins, cheddar, bacon, sour cream", "desc": "Loaded potato skins, cheddar, bacon, sour cream"}, {"name": "Cheesy Breadsticks", "size": "Breadsticks topped with cheese", "desc": "Breadsticks topped with cheese"}, {"name": "Bruschetta", "size": "Toasted bread, tomato, basil, garlic", "desc": "Toasted bread, tomato, basil, garlic"}, {"name": "Jumbo Shrimp Appetizer", "size": "Breaded jumbo shrimp, cocktail sauce", "desc": "Breaded jumbo shrimp, cocktail sauce"}, {"name": "Onion Rings", "size": "Breaded onion rings", "desc": "Breaded onion rings"}, {"name": "Fried Calamari", "size": "Breaded calamari, marinara dip", "desc": "Breaded calamari, marinara dip"}, {"name": "Loaded Nachos", "size": "Tortilla chips, cheese, toppings", "desc": "Tortilla chips, cheese, toppings"}, {"name": "Chicken Fingers", "size": "Breaded chicken tenders, choice of dip", "desc": "Breaded chicken tenders, choice of dip"}, {"name": "Buffalo Chicken Dip", "size": "Buffalo chicken dip, tortilla chips", "desc": "Buffalo chicken dip, tortilla chips"}, {"name": "Garlic Bread", "size": "Toasted garlic bread", "desc": "Toasted garlic bread"}, {"name": "Fried Pickles", "size": "Breaded fried pickle spears", "desc": "Breaded fried pickle spears"}], "Burgers": [{"name": "Cheeseburger (1/2 lb)", "size": "Ketchup, mustard, lettuce, onion & tomato", "desc": "Ketchup, mustard, lettuce, onion & tomato"}, {"name": "Zazzo's Burger", "size": "House specialty toppings", "desc": "House specialty toppings"}, {"name": "Western Burger", "size": "BBQ sauce, bacon, onion rings, cheddar", "desc": "BBQ sauce, bacon, onion rings, cheddar"}, {"name": "Boss Burger", "size": "Loaded specialty burger", "desc": "Loaded specialty burger"}, {"name": "Mushroom Swiss Burger", "size": "Sauteed mushrooms & swiss cheese", "desc": "Sauteed mushrooms & swiss cheese"}], "Desserts": [{"name": "Brownie", "size": "Chocolate brownie", "desc": "Chocolate brownie"}, {"name": "Cheesecake", "size": "NY style cheesecake", "desc": "NY style cheesecake"}, {"name": "Tiramisu", "size": "Individual tiramisu", "desc": "Individual tiramisu"}, {"name": "Cannoli", "size": "Classic Italian cannoli", "desc": "Classic Italian cannoli"}, {"name": "Ice Cream", "size": "Scoop of vanilla ice cream", "desc": "Scoop of vanilla ice cream"}, {"name": "Chocolate Cake", "size": "Slice of chocolate layer cake", "desc": "Slice of chocolate layer cake"}], "Dinners": [{"name": "Baby Back Ribs - Full Slab", "size": "Full slab", "desc": "Full slab Zazzos ribs + house BBQ sauce | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Baby Back Ribs - Half Slab", "size": "Half slab", "desc": "Half slab Zazzos ribs + house BBQ sauce | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Breaded Jumbo Shrimp Dinner (6)", "size": "6 pieces", "desc": "6 pieces + cocktail sauce | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Rib & Shrimp Combo", "size": "Half slab + shrimp", "desc": "Half slab ribs + jumbo shrimp | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Broasted Chicken Dinner", "size": "4 pieces", "desc": "4-piece broasted chicken | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Chicken & Veggie Dinner", "size": "Grilled chicken + vegetables", "desc": "Grilled chicken breast + sauteed vegetables | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Sausage & Peppers Platter", "size": "Sausage, peppers & onions", "desc": "Italian sausage, peppers & onions | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Salmon Dinner", "size": "Grilled salmon filet", "desc": "Grilled salmon filet | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Fried Shrimp Basket", "size": "Basket of fried shrimp", "desc": "Basket of fried shrimp + fries + cocktail sauce"}, {"name": "Chicken Parmesan Dinner", "size": "Breaded chicken + marinara + mozzarella", "desc": "Breaded chicken cutlet, marinara, melted mozzarella | served with house salad (small), choice of side (avg) & a roll"}, {"name": "Eggplant Parmesan Dinner", "size": "Breaded eggplant + marinara + mozzarella", "desc": "Breaded eggplant, marinara, melted mozzarella | served with house salad (small), choice of side (avg) & a roll"}], "Handhelds": [{"name": "Combo (Italian Beef & Sausage)", "size": "On French bread", "desc": "On French bread, choice of fries or onion rings (avg). Add cheese/peppers extra"}, {"name": "Italian Beef Sandwich", "size": "On French bread", "desc": "Thin-sliced Italian beef, on French bread, choice of side"}, {"name": "Italian Sausage Sandwich", "size": "On French bread", "desc": "Grilled Italian sausage, on French bread, choice of side"}, {"name": "Chicken Parm Sandwich", "size": "Breaded chicken, marinara, mozzarella", "desc": "Breaded chicken cutlet, marinara, melted mozzarella, on a roll"}, {"name": "Eggplant Parm Sandwich", "size": "Breaded eggplant, marinara, mozzarella", "desc": "Breaded eggplant, marinara, melted mozzarella, on a roll"}, {"name": "Chicken TBM Sandwich", "size": "Chicken, bacon, tomato, mushroom", "desc": "Grilled chicken, bacon, tomato, mushroom"}, {"name": "Meatball Sandwich", "size": "Meatballs, marinara, mozzarella", "desc": "House meatballs, marinara, melted mozzarella, on a roll"}, {"name": "Philly Cheesesteak", "size": "Steak, peppers, onions, cheese", "desc": "Sliced steak, sauteed peppers & onions, melted cheese"}, {"name": "Grilled Chicken Sandwich", "size": "Grilled chicken breast", "desc": "Grilled chicken breast, lettuce, tomato, choice of side"}], "Kids Menu": [{"name": "Chicken Fingers (3) & Fries (Kids)", "size": "10 & under", "desc": "10 & under. Fries = standard menu side portion"}, {"name": "Mini Cheeseburger & Fries (Kids)", "size": "10 & under", "desc": "10 & under, mini cheeseburger + fries"}, {"name": "Kids Spaghetti", "size": "10 & under", "desc": "10 & under, spaghetti with marinara"}, {"name": "Kids Cheese Pizza", "size": "10 & under", "desc": "10 & under, personal cheese pizza"}, {"name": "Kids Mac & Cheese", "size": "10 & under", "desc": "10 & under, mac & cheese"}, {"name": "Kids Grilled Cheese & Fries", "size": "10 & under", "desc": "10 & under, grilled cheese + fries"}, {"name": "Kids Chicken Tenders", "size": "10 & under", "desc": "10 & under, plain chicken tenders"}, {"name": "Kids Corn Dog & Fries", "size": "10 & under", "desc": "10 & under, corn dog + fries"}, {"name": "Kids Pasta with Butter", "size": "10 & under", "desc": "10 & under, plain buttered pasta"}], "Pastas": [{"name": "Spaghetti", "size": "Served with house salad (small) & a roll", "desc": "Served with house salad (small) & a roll"}, {"name": "Zazzo's Ravioli", "size": "House-recipe ravioli", "desc": "House-recipe cheese ravioli in marinara, served with house salad (small) & a roll"}, {"name": "Penne Arrabbiata", "size": "Spicy tomato sauce", "desc": "Penne in a spicy arrabbiata tomato sauce, served with house salad (small) & a roll"}, {"name": "Gnocchi", "size": "Potato dumplings", "desc": "Potato gnocchi in marinara or house sauce, served with house salad (small) & a roll"}, {"name": "Chicken Tetrazzini", "size": "Chicken in cream sauce", "desc": "Chicken, mushrooms, pasta in a creamy sauce, served with house salad (small) & a roll"}, {"name": "Chicken & Mushroom Pasta", "size": "Chicken & mushroom in sauce", "desc": "Grilled chicken & mushrooms tossed with pasta, served with house salad (small) & a roll"}, {"name": "Chicken Parmesan (Pasta)", "size": "Breaded chicken over pasta", "desc": "Breaded chicken cutlet, marinara, mozzarella over pasta, served with house salad (small) & a roll"}, {"name": "Eggplant Parmesan (Pasta)", "size": "Breaded eggplant over pasta", "desc": "Breaded eggplant, marinara, mozzarella over pasta, served with house salad (small) & a roll"}, {"name": "Fettuccine Alfredo", "size": "Creamy alfredo sauce", "desc": "Fettuccine in a creamy alfredo sauce, served with house salad (small) & a roll"}, {"name": "Chicken Bacon Alfredo (Pasta)", "size": "Chicken, bacon, alfredo", "desc": "Grilled chicken, bacon, alfredo sauce over pasta, served with house salad (small) & a roll"}, {"name": "Baked Ziti", "size": "Baked pasta, marinara, mozzarella", "desc": "Baked ziti with marinara and melted mozzarella, served with house salad (small) & a roll"}, {"name": "Lasagna", "size": "Layered pasta, meat sauce, cheese", "desc": "Traditional layered lasagna, served with house salad (small) & a roll"}, {"name": "Shrimp Scampi (Pasta)", "size": "Shrimp in garlic butter sauce", "desc": "Shrimp sauteed in garlic butter over pasta, served with house salad (small) & a roll"}, {"name": "Stuffed Shells", "size": "Cheese-stuffed pasta shells", "desc": "Cheese-stuffed pasta shells in marinara, served with house salad (small) & a roll"}, {"name": "Manicotti", "size": "Cheese-filled pasta tubes", "desc": "Cheese-filled manicotti in marinara, served with house salad (small) & a roll"}, {"name": "Cheese Tortellini", "size": "Cheese-filled tortellini", "desc": "Cheese tortellini in marinara or alfredo, served with house salad (small) & a roll"}], "Pizzas": [{"name": "Margherita", "size": "12\", 14\", 16\", 18\"", "desc": "Olive oil, tomato, basil & fresh mozzarella"}, {"name": "BBQ Chicken", "size": "12\", 14\", 16\", 18\"", "desc": "House BBQ sauce, chicken, bacon & red onion"}, {"name": "Buffalo Chicken", "size": "12\", 14\", 16\", 18\"", "desc": "Buffalo sauce, chicken, ranch drizzle & mozzarella"}, {"name": "Hawaiian", "size": "12\", 14\", 16\", 18\"", "desc": "Ham, pineapple & mozzarella"}, {"name": "Meat Lovers", "size": "12\", 14\", 16\", 18\"", "desc": "Pepperoni, sausage, bacon & ham"}, {"name": "Veggie Special", "size": "12\", 14\", 16\", 18\"", "desc": "Mushroom, green pepper, onion, black olive & tomato"}, {"name": "Zazzo's Special", "size": "12\", 14\", 16\", 18\"", "desc": "House specialty combination of meats & vegetables"}, {"name": "Mama Zazzo's", "size": "12\", 14\", 16\", 18\"", "desc": "House signature specialty pizza"}, {"name": "Chicken Bacon Alfredo (Pizza)", "size": "12\", 14\", 16\", 18\"", "desc": "Alfredo base, chicken, bacon & mozzarella"}, {"name": "Cheese Pizza", "size": "12\", 14\", 16\", 18\"", "desc": "Tomato sauce & mozzarella"}, {"name": "Pepperoni Pizza", "size": "12\", 14\", 16\", 18\"", "desc": "Tomato sauce, mozzarella & pepperoni"}, {"name": "Sausage Pizza", "size": "12\", 14\", 16\", 18\"", "desc": "Tomato sauce, mozzarella & Italian sausage"}, {"name": "White Pizza", "size": "12\", 14\", 16\", 18\"", "desc": "Ricotta, mozzarella & garlic, no red sauce"}, {"name": "Deep Dish", "size": "Deep dish sizes", "desc": "Thick buttery crust, layered cheese & toppings, chunky tomato sauce on top"}, {"name": "Sicilian", "size": "Sicilian sizes", "desc": "Thick square-cut crust, robust tomato sauce & mozzarella"}, {"name": "Stuffed Pizza", "size": "Stuffed sizes", "desc": "Double crust stuffed with cheese & toppings, sauce on top"}, {"name": "Gluten Free Pizza", "size": "Gluten free crust size", "desc": "Gluten-free crust, tomato sauce & mozzarella"}, {"name": "Cauliflower Crust Pizza", "size": "Cauliflower crust size", "desc": "Cauliflower crust, tomato sauce & mozzarella"}, {"name": "Sal's Way", "size": "Specialty prep style", "desc": "House specialty prep style, ask your trainer for details"}], "Salads": [{"name": "Chicken Caesar Salad", "size": "Full salad + roll", "desc": "Romaine + grilled chicken + croutons + caesar blend + caesar dressing + 2 dressing cups & a roll"}, {"name": "Caesar Salad", "size": "Full salad + roll", "desc": "Romaine + croutons + caesar blend + caesar dressing & a roll"}, {"name": "House Salad", "size": "Small or large", "desc": "Mixed greens, tomato, cucumber, choice of dressing"}, {"name": "Chopped Salad", "size": "Full salad", "desc": "Chopped greens, salami, cheese, chickpeas, choice of dressing"}, {"name": "BBQ Chicken Salad", "size": "Full salad", "desc": "Greens, grilled BBQ chicken, corn, black beans, cheddar, tortilla strips"}, {"name": "MKATS Buffalo Chicken Salad", "size": "Full salad", "desc": "Greens, buffalo chicken, cheese, ranch or blue cheese dressing"}, {"name": "Caprese Salad", "size": "Full salad", "desc": "Fresh mozzarella, tomato, basil, balsamic drizzle"}, {"name": "Antipasto Salad", "size": "Full salad", "desc": "Greens, Italian meats, cheese, olives, pepperoncini"}, {"name": "Greek Salad", "size": "Full salad", "desc": "Greens, feta, olives, cucumber, tomato, red onion, greek dressing"}, {"name": "Grilled Chicken Salad", "size": "Full salad", "desc": "Greens, grilled chicken breast, tomato, cucumber, choice of dressing"}], "Sides": [{"name": "Loaded Baked Potato", "size": "Baked potato + toppings", "desc": "Baked potato + sour cream + cheddar + bacon bits"}, {"name": "French Fries", "size": "Side portion", "desc": "Standard side portion of fries"}, {"name": "Onion Rings", "size": "Side portion", "desc": "Standard side portion of onion rings"}], "Wraps": [{"name": "Chipotle Chicken Wrap", "size": "Grilled chicken", "desc": "Grilled chicken, lettuce, tomato, cheddar cheese and chipotle sauce"}, {"name": "Buffalo Chicken Wrap", "size": "Breaded chicken", "desc": "Breaded buffalo chicken, lettuce, tomato, ranch or blue cheese"}, {"name": "Chicken Caesar Wrap", "size": "Grilled chicken", "desc": "Grilled chicken, romaine, parmesan, caesar dressing"}]}, "liquor": {"Bottle Beer": ["Budweiser", "Heineken", "Daura (Gluten Free)", "Corona Light", "Corona", "Miller Lite", "Bud Light", "Blue Moon", "Stella Artois", "Angry Orchard", "Guinness", "Sam Adams Seasonal", "Yuengling"], "Bourbon/Whiskey": ["High West", "Jack Daniel's Old No. 7", "Horse Soldier Small Batch", "Michter's", "Knob Creek", "Maker's Mark", "Woodford Reserve", "Buffalo Trace", "Bulleit Bourbon", "Wild Turkey 101", "Basil Hayden's", "Four Roses", "Elijah Craig", "Angel's Envy", "Blanton's"], "Wine": ["Sauvignon Blanc — Canyon Road", "Chianti — Ruffino (Glass)", "Pinot Grigio — Canyon Road (Glass)", "Pinot Grigio — Canyon Road (Bottle)", "Pinot Grigio — Caposaldo (Glass)"], "Rye": ["Bulleit", "Sazerac", "Templeton 4 Year", "WhistlePig 10 Year", "Pinhook"], "Scotch": ["Glenlivet 12 Year", "Dewars"], "Irish": ["Redbreast", "Tullamore D.E.W.", "Jameson"], "Classic Cocktails": ["French 75", "Paloma", "The Calvary Old Fashioned", "Espresso Martini", "Moscow Mule"], "Signature Martinis": ["Sparkling Cosmo", "Espresso", "Lemon Drop", "Chocolate"]}};
+
+const LIQUOR_POOL_CATS = Object.keys(MENU_DATA.liquor);
+const DINEIN_CATS = Object.keys(MENU_DATA.dinein);
+const DINEIN_FLAT = [];
+DINEIN_CATS.forEach(c=> MENU_DATA.dinein[c].forEach(it=> DINEIN_FLAT.push({cat:c, name:it.name})));
+
+// day -> which menu categories become multiple-choice questions, and which QUIZ categories stay fixed
+const TEST_DAY_CONFIG = {
+  2: { mc:[{label:'Pizzas', source:'dinein', cat:'Pizzas', n:4}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:4}],
+       fixedCats:['Specials','Loyalty Program'] },
+  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:4}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:4}],
+       fixedCats:[] },
+  4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:4}, {label:'Desserts', source:'dinein', cat:'Desserts', n:3},
+           {label:'Salads', source:'dinein', cat:'Salads', n:3}, {label:'Liquor', source:'liquor', cat:'RANDOM', n:4}],
+       fixedCats:['Coupons & VIP'] }
+};
+
+function shuffleArr(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function pickRandomN(arr,n){ return shuffleArr(arr).slice(0,Math.min(n,arr.length)); }
+
+function genDineinQuestion(catName, qIndex){
+  const items = MENU_DATA.dinein[catName];
+  const item = items[Math.floor(Math.random()*items.length)];
+  const useDesc = item.desc && item.desc.length > 8 && Math.random() < 0.6;
+  if(useDesc){
+    const others = items.filter(x=>x.name!==item.name && x.desc && x.desc.length>8);
+    const decoys = pickRandomN(others,3).map(d=>d.desc);
+    if(decoys.length<3){
+      // fall back to membership-style question if not enough decoys
+      return genMembershipQuestion(catName, item);
+    }
+    const options = shuffleArr([item.desc, ...decoys]);
+    return { id:`d-${catName}-${qIndex}`, cat:catName, prompt:`What comes with the ${item.name}?`, options, correct:item.desc };
+  }
+  return genMembershipQuestion(catName, item);
+}
+function genMembershipQuestion(catName, item){
+  const decoyPool = DINEIN_FLAT.filter(x=>x.cat!==catName);
+  const decoys = pickRandomN(decoyPool,3).map(d=>d.name);
+  const options = shuffleArr([item.name, ...decoys]);
+  return { id:`m-${catName}-${item.name}-${Math.random().toString(36).slice(2,7)}`, cat:catName, prompt:`Which of these is one of our current ${catName}?`, options, correct:item.name };
+}
+function genLiquorQuestion(qIndex){
+  const cat = LIQUOR_POOL_CATS[Math.floor(Math.random()*LIQUOR_POOL_CATS.length)];
+  const names = MENU_DATA.liquor[cat];
+  const name = names[Math.floor(Math.random()*names.length)];
+  const otherPool = [];
+  LIQUOR_POOL_CATS.forEach(c=>{ if(c!==cat) MENU_DATA.liquor[c].forEach(n=>otherPool.push(n)); });
+  const decoys = pickRandomN(otherPool,3);
+  const options = shuffleArr([name, ...decoys]);
+  return { id:`l-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Liquor', prompt:`Which of these is one of our current ${cat} options?`, options, correct:name };
+}
+
+function buildTestSet(day){
+  const cfg = TEST_DAY_CONFIG[day];
+  let mc = [];
+  cfg.mc.forEach(group=>{
+    for(let i=0;i<group.n;i++){
+      if(group.source==='liquor') mc.push(genLiquorQuestion(i));
+      else mc.push(genDineinQuestion(group.cat, i));
+    }
+  });
+  return { mc };
+}
+
 // ---------------- RENDER ----------------
 
 function totalTaskCount(){
@@ -916,6 +1084,7 @@ function render(){
     ${tabBtn('guides','POS Guides')}
     ${tabBtn('programs','Programs')}
     ${tabBtn('quiz','Test Prep')}
+    ${tabBtn('test','Test')}
   </div>
 
   <div class="content">
@@ -925,6 +1094,7 @@ function render(){
   if(state.tab==='guides') html += renderAccordionList(GUIDES);
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS);
   if(state.tab==='quiz') html += renderQuiz();
+  if(state.tab==='test') html += renderTest();
 
   html += `</div>
   <div class="footnote">Zazzo's internal training tool · progress saves on this device</div>
@@ -1001,6 +1171,73 @@ function renderAccordionList(list){
   return html;
 }
 
+function renderTest(){
+  const day = state.testDay || 2;
+  if(!state.testSets[day]){ state.testSets[day] = buildTestSet(day); }
+  const set = state.testSets[day];
+  const cfg = TEST_DAY_CONFIG[day];
+
+  let answered=0, correctCount=0;
+  set.mc.forEach(q=>{
+    const a = state.testMcAnswers[q.id];
+    if(a){ answered++; if(a===q.correct) correctCount++; }
+  });
+
+  let html = `<div class="day-pill-row">`;
+  [2,3,4].forEach(n=>{
+    html += `<button class="pill ${day===n?'active':''}" data-tday="${n}">Day ${n}</button>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="score-bar">
+    <div>
+      <div class="num">${correctCount}/${set.mc.length}</div>
+      <div class="lbl">correct · ${answered}/${set.mc.length} answered</div>
+    </div>
+    <button class="newset-btn" data-newset="${day}">New Random Set</button>
+  </div>`;
+
+  set.mc.forEach(q=>{
+    const selected = state.testMcAnswers[q.id];
+    html += `<div class="mcq">
+      <div class="mcq-cat">${q.cat}</div>
+      <div class="mcq-prompt">${q.prompt}</div>`;
+    q.options.forEach(opt=>{
+      let cls = 'mcopt';
+      if(selected){
+        if(opt===q.correct) cls += ' correct';
+        else if(opt===selected) cls += ' wrong';
+      }
+      html += `<button class="${cls}" ${selected?'disabled':''} data-mcanswer="${q.id}" data-mcopt="${encodeURIComponent(opt)}">${opt}</button>`;
+    });
+    html += `</div>`;
+  });
+
+  if(cfg.fixedCats.length){
+    html += `<div class="fixed-label">Fixed questions — Loyalty, VIP, Text &amp; Pizza Club policies</div>`;
+    const cats = QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat));
+    cats.forEach(cat=>{
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${cat.cat}</div>`;
+      cat.qs.forEach((q,qi)=>{
+        const key = `test-${cat.day}-${cat.cat}-${qi}`;
+        const on = !!state.testFixedChecks[key];
+        const ans = state.testFixedAnswers[key] || '';
+        html += `<div class="qrow">
+          <div class="qtext">
+            <div class="qcheck ${on?'on':''}" data-tfcheck="${key}"></div>
+            <span>${q}</span>
+          </div>
+          <textarea class="answer" placeholder="Answer…" data-tfanswer="${key}">${ans}</textarea>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+  }
+
+  return html;
+}
+
 function renderQuiz(){
   const days = [2,3,4];
   let html = `<div class="day-pill-row">`;
@@ -1067,6 +1304,43 @@ function attachHandlers(){
     el.addEventListener('input', ()=>{
       const k = el.dataset.answer;
       state.answers[k] = el.value;
+    });
+    el.addEventListener('blur', saveState);
+  });
+
+  document.querySelectorAll('[data-tday]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.testDay = parseInt(el.dataset.tday); render(); });
+  });
+  document.querySelectorAll('[data-newset]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const day = parseInt(el.dataset.newset);
+      state.testSets[day] = buildTestSet(day);
+      // clear old answers for this day's question ids
+      const ids = new Set(state.testSets[day].mc.map(q=>q.id));
+      Object.keys(state.testMcAnswers).forEach(k=>{ if(!ids.has(k)) delete state.testMcAnswers[k]; });
+      saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-mcanswer]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const qid = el.dataset.mcanswer;
+      const opt = decodeURIComponent(el.dataset.mcopt);
+      if(state.testMcAnswers[qid]) return; // already answered
+      state.testMcAnswers[qid] = opt;
+      saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-tfcheck]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const k = el.dataset.tfcheck;
+      state.testFixedChecks[k] = !state.testFixedChecks[k];
+      saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-tfanswer]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      const k = el.dataset.tfanswer;
+      state.testFixedAnswers[k] = el.value;
     });
     el.addEventListener('blur', saveState);
   });
