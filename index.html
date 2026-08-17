@@ -1529,17 +1529,6 @@ function render(){
   html += `
   </div>
 
-  <div class="tabbar">
-    ${tabBtn('schedule','Schedule')}
-    ${tabBtn('guides','POS Guides')}
-    ${tabBtn('programs','Programs')}
-    ${tabBtn('quiz','Test Prep')}
-    ${tabBtn('test','Test')}
-    ${tabBtn('links','Links')}
-    ${tabBtn('results','Results')}
-    ${tabBtn('print','Print')}
-  </div>
-
   <div class="content">
   `;
 
@@ -1579,8 +1568,29 @@ function renderHome(){
       <button class="home-tile" data-tab="schedule">
         <div class="ht-icon">📋</div>
         <div class="ht-body">
-          <div class="ht-title">Review the Manual</div>
-          <div class="ht-sub">Schedule, POS guides, programs — no name needed, just browse.</div>
+          <div class="ht-title">Schedule</div>
+          <div class="ht-sub">The four-day plan, day by day, with checklists.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="guides">
+        <div class="ht-icon">🧾</div>
+        <div class="ht-body">
+          <div class="ht-title">POS Guides</div>
+          <div class="ht-sub">Step-by-step for entering orders, loyalty, splitting checks.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="programs">
+        <div class="ht-icon">🎟️</div>
+        <div class="ht-body">
+          <div class="ht-title">Programs</div>
+          <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="quiz">
+        <div class="ht-icon">📚</div>
+        <div class="ht-body">
+          <div class="ht-title">Test Prep</div>
+          <div class="ht-sub">The full question bank, organized by day, with notes.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="newhire">
