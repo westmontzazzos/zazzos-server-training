@@ -1372,14 +1372,27 @@ const DINEIN_FLAT = [];
 DINEIN_CATS.forEach(c=> MENU_DATA.dinein[c].forEach(it=> DINEIN_FLAT.push({cat:c, name:it.name})));
 
 // day -> which menu categories become multiple-choice questions, and which QUIZ categories stay fixed
+const FIXED_MC_BANK = {
+  Soup: [
+    { prompt: "What size options do we offer for soup?", correct: "Cup or Bowl", decoys: ["Small or Large only", "12 oz. cup only, no bowl", "Bowl only — no cup size"] },
+    { prompt: "On dishes where it's included, soup can be chosen instead of which side?", correct: "The house salad", decoys: ["The bread basket", "French fries", "A side of pasta"] }
+  ]
+};
+function genFixedMCQuestion(cat, qIndex){
+  const bank = FIXED_MC_BANK[cat];
+  const q = bank[qIndex % bank.length];
+  const options = shuffleArr([q.correct, ...q.decoys]);
+  return { id:`fx-${cat}-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat, prompt:q.prompt, options, correct:q.correct };
+}
+
 const TEST_DAY_CONFIG = {
   2: { mc:[{label:'Pizzas', source:'dinein', cat:'Pizzas', n:4}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:4}],
-       fixedCats:['Specials','Loyalty Program'] },
+       fixedCats:['Loyalty Program'] },
   3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:4}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:4}],
        fixedCats:[] },
   4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:4}, {label:'Desserts', source:'dinein', cat:'Desserts', n:3},
-           {label:'Salads', source:'dinein', cat:'Salads', n:3}],
-       fixedCats:['Soup, Salads & Desserts','Liquor','Coupons & VIP'] }
+           {label:'Salads', source:'dinein', cat:'Salads', n:3}, {label:'Soup', source:'fixedmc', cat:'Soup', n:2}],
+       fixedCats:['Liquor','Coupons & VIP'] }
 };
 
 function shuffleArr(arr){
@@ -1447,6 +1460,7 @@ function buildTestSet(day){
   cfg.mc.forEach(group=>{
     for(let i=0;i<group.n;i++){
       if(group.source==='liquor') mc.push(genLiquorQuestion(i));
+      else if(group.source==='fixedmc') mc.push(genFixedMCQuestion(group.cat, i));
       else mc.push(genDineinQuestion(group.cat, i));
     }
   });
