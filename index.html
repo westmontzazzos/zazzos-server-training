@@ -57,7 +57,8 @@
   .hero::before{ content:none; }
   .eyebrow{
     display:flex;
-    justify-content:center;
+    justify-content:space-between;
+    align-items:center;
     margin-bottom:14px;
   }
   .home-btn{
@@ -1580,7 +1581,10 @@ function render(){
 
   let html = `
   <div class="hero">
-    <div class="eyebrow"><a href="#" data-tab="home" class="home-btn">← Home</a></div>
+    <div class="eyebrow">
+      <a href="#" id="nav-home-link" class="home-btn">🏠 Home</a>
+      <a href="#" id="nav-back-link" data-backto="${PARENT_TAB[state.tab] || 'home'}" class="home-btn">← Back</a>
+    </div>
     <div class="zazzos-word">Zazzo's</div>`;
 
   if(trainee && state.role==='server'){
@@ -1676,7 +1680,10 @@ function renderRolePicker(){
 function renderBartenderHub(){
   return `<div class="focused-wrap" style="max-width:560px;">
     <div class="focused-head">
-      <a href="#" id="role-switch-link" class="home-btn" style="margin-bottom:10px;">← Roles</a>
+      <div class="eyebrow" style="margin-bottom:10px;">
+        <a href="#" class="role-switch-link home-btn">🏠 Home</a>
+        <a href="#" class="role-switch-link home-btn">← Back</a>
+      </div>
       <h1>Zazzo's</h1>
       <div class="sub">Bartender</div>
     </div>
@@ -1744,7 +1751,10 @@ function renderBartenderHub(){
 function renderCashierHub(){
   return `<div class="focused-wrap" style="max-width:560px;">
     <div class="focused-head">
-      <a href="#" id="role-switch-link" class="home-btn" style="margin-bottom:10px;">← Roles</a>
+      <div class="eyebrow" style="margin-bottom:10px;">
+        <a href="#" class="role-switch-link home-btn">🏠 Home</a>
+        <a href="#" class="role-switch-link home-btn">← Back</a>
+      </div>
       <h1>Zazzo's</h1>
       <div class="sub">Cashier</div>
     </div>
@@ -1755,7 +1765,10 @@ function renderCashierHub(){
 function renderHome(){
   return `<div class="focused-wrap" style="max-width:560px;">
     <div class="focused-head">
-      <a href="#" id="role-switch-link" class="home-btn" style="margin-bottom:10px;">← Roles</a>
+      <div class="eyebrow" style="margin-bottom:10px;">
+        <a href="#" class="role-switch-link home-btn">🏠 Home</a>
+        <a href="#" class="role-switch-link home-btn">← Back</a>
+      </div>
       <h1>Zazzo's</h1>
       <div class="sub">Server Training</div>
     </div>
@@ -1816,7 +1829,10 @@ function renderHome(){
 function renderSignInGate(){
   return `<div class="focused-wrap">
     <div class="focused-head">
-      <a href="#" id="signin-home-link" class="home-btn" style="margin-bottom:10px;">← Home</a>
+      <div class="eyebrow" style="margin-bottom:10px;">
+        <a href="#" id="nav-home-link" class="home-btn">🏠 Home</a>
+        <a href="#" id="signin-home-link" class="home-btn">← Back</a>
+      </div>
       <h1>Zazzo's</h1>
       <div class="sub">New Hire Training</div>
     </div>
@@ -1858,6 +1874,8 @@ function isoToDateStr(iso){
 function attachSignInHandlers(){
   const homeLink = document.getElementById('signin-home-link');
   if(homeLink) homeLink.addEventListener('click', (e)=>{ e.preventDefault(); state.tab='home'; render(); });
+  const navHomeLink = document.getElementById('nav-home-link');
+  if(navHomeLink) navHomeLink.addEventListener('click', (e)=>{ e.preventDefault(); state.role=null; state.tab='home'; render(); });
   const nameEl = document.getElementById('signin-name');
   const dateEl = document.getElementById('signin-startdate');
   const btn = document.getElementById('signin-btn');
@@ -1880,6 +1898,13 @@ function attachSignInHandlers(){
     signInTrainee(nameEl.value, dateStrToISO(dateEl.value));
   });
 }
+
+const PARENT_TAB = {
+  schedule:'home', guides:'home', programs:'home', newhire:'home',
+  testing:'home', results:'home', print:'home', 'bar-guide':'home',
+  'print-packet':'print', 'print-test':'print',
+  quiz:'testing', links:'testing', 'bar-links':'testing'
+};
 
 function tabBtn(id,label){
   return `<button class="tabbtn ${state.tab===id?'active':''}" data-tab="${id}">${label}</button>`;
@@ -2947,12 +2972,28 @@ function attachHandlers(){
       render();
     });
   });
-  const roleSwitchLink = document.getElementById('role-switch-link');
-  if(roleSwitchLink){
-    roleSwitchLink.addEventListener('click', (e)=>{
+  document.querySelectorAll('.role-switch-link').forEach(el=>{
+    el.addEventListener('click', (e)=>{
       e.preventDefault();
       state.role = null;
       state.tab = 'home';
+      render();
+    });
+  });
+  const navHomeLink = document.getElementById('nav-home-link');
+  if(navHomeLink){
+    navHomeLink.addEventListener('click', (e)=>{
+      e.preventDefault();
+      state.role = null;
+      state.tab = 'home';
+      render();
+    });
+  }
+  const navBackLink = document.getElementById('nav-back-link');
+  if(navBackLink){
+    navBackLink.addEventListener('click', (e)=>{
+      e.preventDefault();
+      state.tab = navBackLink.dataset.backto || 'home';
       render();
     });
   }
