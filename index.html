@@ -1619,6 +1619,7 @@ function render(){
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
   if(state.tab==='results') html += renderResults();
+  if(state.tab==='testing') html += renderTestingPicker();
   if(state.tab==='print') html += renderPrintPicker();
   if(state.tab==='print-packet') html += renderPrintPacket();
   if(state.tab==='print-test') html += renderPrintTest();
@@ -1687,18 +1688,11 @@ function renderBartenderHub(){
           <div class="ht-sub">Beer, wine, spirits, and specialty drinks on the bar menu.</div>
         </div>
       </button>
-      <button class="home-tile" data-homelink="bar-study">
-        <div class="ht-icon">🎯</div>
+      <button class="home-tile" data-tab="testing">
+        <div class="ht-icon">📝</div>
         <div class="ht-body">
-          <div class="ht-title">Study Guide</div>
-          <div class="ht-sub">Flashcard-style practice on the bar menu.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="bar-links">
-        <div class="ht-icon">🔗</div>
-        <div class="ht-body">
-          <div class="ht-title">Send a Test</div>
-          <div class="ht-sub">The specialty-drinks test link — copy and send.</div>
+          <div class="ht-title">Testing</div>
+          <div class="ht-sub">Study Guide and sending the specialty-drinks test.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="results">
@@ -1729,6 +1723,7 @@ function renderCashierHub(){
 function renderHome(){
   return `<div class="focused-wrap" style="max-width:560px;">
     <div class="focused-head">
+      <a href="#" id="role-switch-link" class="home-btn" style="margin-bottom:10px;">← Roles</a>
       <h1>Zazzo's</h1>
       <div class="sub">Server Training</div>
     </div>
@@ -1754,13 +1749,6 @@ function renderHome(){
           <div class="ht-sub">VIP, Text Club, and Pizza Club — how each one works.</div>
         </div>
       </button>
-      <button class="home-tile" data-tab="quiz">
-        <div class="ht-icon">📚</div>
-        <div class="ht-body">
-          <div class="ht-title">Test Prep</div>
-          <div class="ht-sub">The full question bank, organized by day, with notes.</div>
-        </div>
-      </button>
       <button class="home-tile" data-tab="newhire">
         <div class="ht-icon">🧑‍🍳</div>
         <div class="ht-body">
@@ -1768,18 +1756,11 @@ function renderHome(){
           <div class="ht-sub">Enter a name and start date to begin tracking their four days.</div>
         </div>
       </button>
-      <button class="home-tile" data-homelink="study">
-        <div class="ht-icon">🎯</div>
+      <button class="home-tile" data-tab="testing">
+        <div class="ht-icon">📝</div>
         <div class="ht-body">
-          <div class="ht-title">Study Guide</div>
-          <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="links">
-        <div class="ht-icon">🔗</div>
-        <div class="ht-body">
-          <div class="ht-title">Send a Test</div>
-          <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+          <div class="ht-title">Testing</div>
+          <div class="ht-sub">Test Prep, Study Guide, and sending tests — all in one place.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="results">
@@ -2152,6 +2133,50 @@ function renderLinks(){
     </div>`;
   });
   return html;
+}
+
+function renderTestingPicker(){
+  if(state.role==='bartender'){
+    return `<div class="home-tiles">
+      <button class="home-tile" data-homelink="bar-study">
+        <div class="ht-icon">🎯</div>
+        <div class="ht-body">
+          <div class="ht-title">Study Guide</div>
+          <div class="ht-sub">Flashcard-style practice on the bar menu.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="bar-links">
+        <div class="ht-icon">🔗</div>
+        <div class="ht-body">
+          <div class="ht-title">Send a Test</div>
+          <div class="ht-sub">The specialty-drinks test link — copy and send.</div>
+        </div>
+      </button>
+    </div>`;
+  }
+  return `<div class="home-tiles">
+    <button class="home-tile" data-tab="quiz">
+      <div class="ht-icon">📚</div>
+      <div class="ht-body">
+        <div class="ht-title">Test Prep</div>
+        <div class="ht-sub">The full question bank, organized by day, with notes.</div>
+      </div>
+    </button>
+    <button class="home-tile" data-homelink="study">
+      <div class="ht-icon">🎯</div>
+      <div class="ht-body">
+        <div class="ht-title">Study Guide</div>
+        <div class="ht-sub">Interactive practice — pick what to focus on, flashcard-style.</div>
+      </div>
+    </button>
+    <button class="home-tile" data-tab="links">
+      <div class="ht-icon">🔗</div>
+      <div class="ht-body">
+        <div class="ht-title">Send a Test</div>
+        <div class="ht-sub">Copy a graded test link for whichever day they're on.</div>
+      </div>
+    </button>
+  </div>`;
 }
 
 function renderPrintPicker(){
