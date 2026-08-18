@@ -1897,6 +1897,7 @@ function render(){
   if(state.tab==='results') html += renderResults();
   if(state.tab==='testing') html += renderTestingPicker();
   if(state.tab==='print') html += renderPrintPicker();
+  if(state.tab==='forms') html += renderFormsPicker();
   if(state.tab==='print-packet') html += renderPrintPacket();
   if(state.tab==='print-test') html += renderPrintTest();
   if(state.tab==='bar-guide') html += renderAccordionList(BAR_GUIDE, "Everything on the bar menu, pulled straight from the real menu data — no prices, just what's on it.");
@@ -1981,6 +1982,13 @@ function renderBartenderHub(){
           <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
         </div>
       </button>
+      <button class="home-tile" data-tab="forms">
+        <div class="ht-icon">📄</div>
+        <div class="ht-body">
+          <div class="ht-title">Application & New Hire Forms</div>
+          <div class="ht-sub">Job application, new hire paperwork, and the driver form — view or print.</div>
+        </div>
+      </button>
     </div>
   </div>`;
 }
@@ -2029,6 +2037,13 @@ function renderHome(){
         <div class="ht-body">
           <div class="ht-title">Print</div>
           <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="forms">
+        <div class="ht-icon">📄</div>
+        <div class="ht-body">
+          <div class="ht-title">Application & New Hire Forms</div>
+          <div class="ht-sub">Job application, new hire paperwork, and the driver form — view or print.</div>
         </div>
       </button>
     </div>
@@ -2160,7 +2175,7 @@ function attachSignInHandlers(){
 }
 
 const PARENT_TAB = {
-  newhire:'home', 'active-hires':'home', print:'home',
+  newhire:'home', 'active-hires':'home', print:'home', forms:'home',
   'trainee-hub':'active-hires',
   schedule:'trainee-hub', guides:'trainee-hub', programs:'trainee-hub',
   testing:'trainee-hub', results:'trainee-hub', 'bar-guide':'trainee-hub',
@@ -2650,6 +2665,26 @@ function renderTestingPicker(){
       </div>
     </button>
   </div>`;
+}
+
+const HR_FORMS = [
+  { name: "Job Application", file: "forms/Job-Application.pdf", desc: "For anyone applying for a position." },
+  { name: "New Hire Form", file: "forms/New-Hire-Form.pdf", desc: "Employee info, federal W-4, and Illinois IL-W-4." },
+  { name: "Driver New Hire Form", file: "forms/Driver-New-Hire-Form.pdf", desc: "Independent contractor agreement for delivery drivers." }
+];
+function renderFormsPicker(){
+  let html = `<div class="callout" style="margin-top:0;">View opens the real document to read. Print opens it in a new tab where your phone's own PDF viewer has a print button — that's the most reliable way to print across devices.</div>`;
+  HR_FORMS.forEach(f=>{
+    html += `<div class="quiz-card">
+      <div class="mcq-prompt" style="margin-bottom:4px;">${f.name}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">${f.desc}</div>
+      <div class="link-actions">
+        <a href="${f.file}" target="_blank" rel="noopener" class="link-preview-btn">View</a>
+        <a href="${f.file}" target="_blank" rel="noopener" class="link-copy-btn" style="text-decoration:none; display:block; text-align:center;">Print</a>
+      </div>
+    </div>`;
+  });
+  return html;
 }
 
 function renderPrintPicker(){
