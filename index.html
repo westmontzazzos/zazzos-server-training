@@ -1875,6 +1875,9 @@ function render(){
   } else if(state.role==='bartender'){
     html += `<h1 class="brand">Bartender</h1>
     <div class="brand-sub">Bar menu reference and the specialty-drinks test.</div>`;
+  } else if(state.tab==='forms'){
+    html += `<h1 class="brand">New Hire Paperwork</h1>
+    <div class="brand-sub">View or print any of these documents.</div>`;
   } else {
     html += `<h1 class="brand">Server Training</h1>
     <div class="brand-sub">Pick an active new hire to view their schedule, tests, and results.</div>`;
@@ -1946,6 +1949,13 @@ function renderRolePicker(){
           <div class="ht-sub">Coming soon.</div>
         </div>
       </button>
+      <button class="home-tile" data-tab="forms">
+        <div class="ht-icon">📄</div>
+        <div class="ht-body">
+          <div class="ht-title">Application & New Hire Forms</div>
+          <div class="ht-sub">Job application, new hire paperwork, and the driver form — view or print.</div>
+        </div>
+      </button>
     </div>
   </div>`;
 }
@@ -1980,13 +1990,6 @@ function renderBartenderHub(){
         <div class="ht-body">
           <div class="ht-title">Print</div>
           <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="forms">
-        <div class="ht-icon">📄</div>
-        <div class="ht-body">
-          <div class="ht-title">Application & New Hire Forms</div>
-          <div class="ht-sub">Job application, new hire paperwork, and the driver form — view or print.</div>
         </div>
       </button>
     </div>
@@ -2037,13 +2040,6 @@ function renderHome(){
         <div class="ht-body">
           <div class="ht-title">Print</div>
           <div class="ht-sub">Printable packet or printable test, straight from your browser.</div>
-        </div>
-      </button>
-      <button class="home-tile" data-tab="forms">
-        <div class="ht-icon">📄</div>
-        <div class="ht-body">
-          <div class="ht-title">Application & New Hire Forms</div>
-          <div class="ht-sub">Job application, new hire paperwork, and the driver form — view or print.</div>
         </div>
       </button>
     </div>
