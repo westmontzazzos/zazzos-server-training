@@ -1210,24 +1210,37 @@ const DAYS = [
 
 // Day 5 exists for Bartender only — the comprehensive bar knowledge test day
 const DAY5_BARTENDER = {
-  n:5, title:"Bar Knowledge Test Day", tag:"Bartender only",
-  objective:"Everything behind the bar comes together today — every brand, every classic cocktail and specialty martini, every recipe, every pour size. This is the day that shows you (and us) you know the bar cold.",
+  n:5, title:"Behind the Bar — Hands-On & Test Day", tag:"Bartender only",
+  objective:"Today's about doing, not just knowing. You'll physically make every drink, ring in every drink on the POS, and work a shift on each side of the bar's day — open and close — before the comprehensive test at the end.",
   sections:[
-    { h:"Before the Test", hrs:"self-paced", items:[
-      "Review the Drinks Guide — every category, every brand",
-      "Use the Bar Study Guide to practice weak spots",
-      "Ask your trainer about any recipe or pour you're unsure of"
+    { h:"Hands-On: Make Every Drink", hrs:"1 hr", items:[
+      "Make every Classic Cocktail on the menu, one at a time",
+      "Make every Signature Martini on the menu, one at a time",
+      "Trainer checks your pour against the real recipe measurements for each one",
+      "Practice the right glassware and garnish for each drink"
     ]},
-    { h:"The Test", hrs:"one sitting", items:[
-      "Identify real Classic Cocktails and Signature Martinis",
-      "Identify real brands across Beer, Wine, Bourbon/Whiskey, Rye, Scotch, Irish",
-      "Know what's in each cocktail — the real recipes",
-      "Know the real pour size for each ingredient"
+    { h:"POS Practice: Enter Every Drink", hrs:"1 hr", items:[
+      "Ring in every Classic Cocktail and Signature Martini",
+      "Ring in beer, wine, and liquor orders by brand",
+      "Practice a mixed drink order alongside a food order on the same ticket",
+      "Trainer checks each entry for accuracy before moving to the next drink"
+    ]},
+    { h:"Shadow an Opening Shift", hrs:"1 full shift", items:[
+      "Arrive with the opening bartender and shadow the entire open",
+      "Learn opening side work — stocking, cutting garnishes, prepping mixers and juices",
+      "Learn the opening checklist and how the station gets set up",
+      "Observe the first guests of the day being served"
+    ]},
+    { h:"Shadow a Closing Shift", hrs:"1 full shift", items:[
+      "Arrive with the closing bartender and shadow the entire close",
+      "Learn closing side work — restocking, cleaning, breaking down the station",
+      "Learn the closing checklist and end-of-night procedures",
+      "Observe how the bar gets handed off and secured for the night"
     ]}
   ],
   testPrep:null,
-  note:"This is the comprehensive bar test — sent as its own link once you're ready.",
-  final:"If competent: ready for a solo shift behind the bar. If not: more practice on the Study Guide before retesting."
+  note:"Once the hands-on rotation and both shadow shifts are done, they're ready for the comprehensive bar test — sent as its own link. It covers every brand, every Classic Cocktail and Signature Martini, real recipes, and real pour sizes.",
+  final:"If competent: ready for a solo shift behind the bar. If not: more practice on the Study Guide, then retest."
 };
 
 function getDaysForRole(){
@@ -2204,7 +2217,7 @@ function renderSchedule(){
     html += `<div class="callout"><b>Study for tomorrow's test:</b> ${d.testPrep}</div>`;
   }
   if(d.final){
-    html += `<div class="callout"><b>End of Day 4:</b> ${d.final}</div>`;
+    html += `<div class="callout"><b>End of Day ${d.n}:</b> ${d.final}</div>`;
   }
   html += `</div>`;
   return html;
@@ -2673,7 +2686,7 @@ function renderPrintPacket(){
     });
     if(d.note) html += `<p><b>Note:</b> ${d.note}</p>`;
     if(d.testPrep) html += `<p><b>Study for tomorrow's test:</b> ${d.testPrep}</p>`;
-    if(d.final) html += `<p><b>End of Day 4:</b> ${d.final}</p>`;
+    if(d.final) html += `<p><b>End of Day ${d.n}:</b> ${d.final}</p>`;
   });
   html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">POS Guides</h2>`;
   GUIDES.forEach(g=>{
