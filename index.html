@@ -1208,6 +1208,32 @@ const DAYS = [
 }
 ];
 
+// Day 5 exists for Bartender only — the comprehensive bar knowledge test day
+const DAY5_BARTENDER = {
+  n:5, title:"Bar Knowledge Test Day", tag:"Bartender only",
+  objective:"Everything behind the bar comes together today — every brand, every classic cocktail and specialty martini, every recipe, every pour size. This is the day that shows you (and us) you know the bar cold.",
+  sections:[
+    { h:"Before the Test", hrs:"self-paced", items:[
+      "Review the Drinks Guide — every category, every brand",
+      "Use the Bar Study Guide to practice weak spots",
+      "Ask your trainer about any recipe or pour you're unsure of"
+    ]},
+    { h:"The Test", hrs:"one sitting", items:[
+      "Identify real Classic Cocktails and Signature Martinis",
+      "Identify real brands across Beer, Wine, Bourbon/Whiskey, Rye, Scotch, Irish",
+      "Know what's in each cocktail — the real recipes",
+      "Know the real pour size for each ingredient"
+    ]}
+  ],
+  testPrep:null,
+  note:"This is the comprehensive bar test — sent as its own link once you're ready.",
+  final:"If competent: ready for a solo shift behind the bar. If not: more practice on the Study Guide before retesting."
+};
+
+function getDaysForRole(){
+  return state.role==='bartender' ? [...DAYS, DAY5_BARTENDER] : DAYS;
+}
+
 const GUIDES = [
 { id:'g1', title:"How to Enter an Order", meta:"POS · Core Flow", body:`
 <h4>Step by step</h4>
@@ -1612,10 +1638,37 @@ function genSpecialtyDrinkQuestion(qIndex){
   const options = shuffleArr([name, ...decoys]);
   return { id:`sd-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Specialty Drinks', prompt:`Which of these is one of our current ${cat}?`, options, correct:name };
 }
+// Real recipe/pour data pulled from Zazzo's actual recipe_database table
+// (found in the darien-liquor-inventory app, same drinks served at both locations)
+const RECIPE_DATABASE = [{"drink": "Aperol Spritz", "maps_to_master_item": "LaMarca Split", "oz": 1, "tracked": "Yes"}, {"drink": "Aperol Spritz", "maps_to_master_item": "Aperol 1L", "oz": 1, "tracked": "Yes"}, {"drink": "Basil Grapefruit Smash", "maps_to_master_item": "Zazzo's Vodka", "oz": 2, "tracked": "Yes"}, {"drink": "Breakfast Shot", "maps_to_master_item": "Jameson", "oz": 0.75, "tracked": "Yes"}, {"drink": "Chocolate Martini", "maps_to_master_item": "Tippy Cow", "oz": 1, "tracked": "Yes"}, {"drink": "Chocolate Martini", "maps_to_master_item": "Sobieski Vanilla", "oz": 2, "tracked": "Yes"}, {"drink": "Chocolate Peppermint Martini", "maps_to_master_item": "Zazzo's Vodka", "oz": 1.5, "tracked": "Yes"}, {"drink": "Chocolate Peppermint Martini", "maps_to_master_item": "Tippy Cow", "oz": 1, "tracked": "Yes"}, {"drink": "Cinnamon Toast Crunch Shot", "maps_to_master_item": "Fireball Apple", "oz": 0.75, "tracked": "Yes"}, {"drink": "Cinnamon Toast Crunch Shot", "maps_to_master_item": "Rumchata", "oz": 0.25, "tracked": "Yes"}, {"drink": "Colada", "maps_to_master_item": "Zazzo's Rum", "oz": 1.5, "tracked": "Yes"}, {"drink": "Espresso Martini", "maps_to_master_item": "Kahlua", "oz": 0.5, "tracked": "Yes"}, {"drink": "Espresso Martini", "maps_to_master_item": "Sobieski Vanilla", "oz": 1.5, "tracked": "Yes"}, {"drink": "French 75", "maps_to_master_item": "Lamarca Splitz", "oz": 1, "tracked": "Yes"}, {"drink": "French 75", "maps_to_master_item": "Zazzo's Gin", "oz": 0.5, "tracked": "Yes"}, {"drink": "French Martini", "maps_to_master_item": "Zazzo's Vodka", "oz": 1.5, "tracked": "Yes"}, {"drink": "French Martini", "maps_to_master_item": "Chambord", "oz": 0.25, "tracked": "Yes"}, {"drink": "Green Tea Shot", "maps_to_master_item": "Jameson", "oz": 1, "tracked": "Yes"}, {"drink": "Green Tea Shot", "maps_to_master_item": "Peachtree", "oz": 0.5, "tracked": "Yes"}, {"drink": "Irish Mule", "maps_to_master_item": "Jameson", "oz": 1.5, "tracked": "Yes"}, {"drink": "Jaegar Bomb", "maps_to_master_item": "Jager", "oz": 1, "tracked": "Yes"}, {"drink": "Lemon Drop Martini", "maps_to_master_item": "Sobieski Citron", "oz": 2, "tracked": "Yes"}, {"drink": "Margarita", "maps_to_master_item": "Zazzo's Tequila", "oz": 2, "tracked": "Yes"}, {"drink": "Mimosa", "maps_to_master_item": "Lamarca Splitz", "oz": 3, "tracked": "Yes"}, {"drink": "O-Bomb", "maps_to_master_item": "Zazzo's Vodka", "oz": 1, "tracked": "Yes"}, {"drink": "Original Mule", "maps_to_master_item": "Zazzo's Vodka", "oz": 1.5, "tracked": "Yes"}, {"drink": "Paloma", "maps_to_master_item": "Zazzo's Tequila", "oz": 1.5, "tracked": "Yes"}, {"drink": "Perfect Manhattan", "maps_to_master_item": "Woodford Reserve", "oz": 2, "tracked": "Yes"}, {"drink": "Pineapple Upside Down", "maps_to_master_item": "Zazzo's Vodka", "oz": 2, "tracked": "Yes"}, {"drink": "Pretty in Pink", "maps_to_master_item": "Zazzo's Vodka", "oz": 0.75, "tracked": "Yes"}, {"drink": "Pretty in Pink", "maps_to_master_item": "Peachtree", "oz": 0.5, "tracked": "Yes"}, {"drink": "Pretty in Pink", "maps_to_master_item": "Zazzo's Rum", "oz": 1.25, "tracked": "Yes"}, {"drink": "Revolver", "maps_to_master_item": "Bulleit Bourbon", "oz": 3, "tracked": "Yes"}, {"drink": "Revolver", "maps_to_master_item": "Kahlua", "oz": 1, "tracked": "Yes"}, {"drink": "Scooby Snack Shot", "maps_to_master_item": "Midori", "oz": 0.75, "tracked": "Yes"}, {"drink": "Scooby Snack Shot", "maps_to_master_item": "Zazzo's Rum", "oz": 0.75, "tracked": "Yes"}, {"drink": "Smokey Old Fashioned", "maps_to_master_item": "Zazzo's Bourbon", "oz": 2, "tracked": "Yes"}, {"drink": "Sparkling Cosmo", "maps_to_master_item": "Lamarca Splitz", "oz": 1, "tracked": "Yes"}, {"drink": "Sparkling Cosmo", "maps_to_master_item": "Tito's", "oz": 1.5, "tracked": "Yes"}, {"drink": "Taste of Italy", "maps_to_master_item": "Peachtree", "oz": 0.5, "tracked": "Yes"}, {"drink": "Taste of Italy", "maps_to_master_item": "Lamarca Splitz", "oz": 1, "tracked": "Yes"}, {"drink": "Taste of Italy", "maps_to_master_item": "Zazzo's Vodka", "oz": 0.5, "tracked": "Yes"}, {"drink": "The Calvary Old Fashioned", "maps_to_master_item": "Horse Soldier", "oz": 2, "tracked": "Yes"}, {"drink": "Thin Mint Shot", "maps_to_master_item": "Tippy Cow", "oz": 1, "tracked": "Yes"}, {"drink": "Thin Mint Shot", "maps_to_master_item": "Rumple Minze", "oz": 0.5, "tracked": "Yes"}, {"drink": "Tiramisu Martini", "maps_to_master_item": "Kahlua", "oz": 0.25, "tracked": "Yes"}, {"drink": "Tiramisu Martini", "maps_to_master_item": "Zazzo's Vodka", "oz": 2, "tracked": "Yes"}, {"drink": "Vegas Bomb", "maps_to_master_item": "Crown Royal", "oz": 1, "tracked": "Yes"}, {"drink": "White Russian", "maps_to_master_item": "Zazzo's Vodka", "oz": 1.25, "tracked": "Yes"}, {"drink": "White Russian", "maps_to_master_item": "Kahlua", "oz": 0.75, "tracked": "Yes"}, {"drink": "White Tea Shot (Gummy Bear)", "maps_to_master_item": "Zazzo's Vodka", "oz": 1, "tracked": "Yes"}, {"drink": "White Tea Shot (Gummy Bear)", "maps_to_master_item": "Peachtree", "oz": 0.5, "tracked": "Yes"}, {"drink": "Zazzo's Long Island", "maps_to_master_item": "Zazzo's Gin", "oz": 0.25, "tracked": "Yes"}, {"drink": "Zazzo's Long Island", "maps_to_master_item": "Zazzo's Tequila", "oz": 0.25, "tracked": "Yes"}, {"drink": "Zazzo's Long Island", "maps_to_master_item": "Zazzo's Rum", "oz": 0.25, "tracked": "Yes"}, {"drink": "Zazzo's Long Island", "maps_to_master_item": "Zazzo's Vodka", "oz": 0.25, "tracked": "Yes"}, {"drink": "Zazzo's Mama", "maps_to_master_item": "Zazzo's Rum", "oz": 0.75, "tracked": "Yes"}, {"drink": "Zazzo's Mama", "maps_to_master_item": "Rumhaven", "oz": 0.75, "tracked": "Yes"}, {"drink": "Zazzo's Old Fashioned", "maps_to_master_item": "Whistle Pig", "oz": 2, "tracked": "Yes"}, {"drink": "Zazzo's Paloma", "maps_to_master_item": "Zazzo's Tequila", "oz": 1.5, "tracked": "Yes"}, {"drink": "Zazzo's Rootbeer", "maps_to_master_item": "Captain Morgan", "oz": 1.5, "tracked": "Yes"}];
+
+const RECIPE_DRINKS = [...new Set(RECIPE_DATABASE.map(r=>r.drink))];
+function genRecipeIngredientQuestion(qIndex){
+  const drink = RECIPE_DRINKS[qIndex % RECIPE_DRINKS.length];
+  const realIngredients = RECIPE_DATABASE.filter(r=>r.drink===drink).map(r=>r.maps_to_master_item);
+  const correct = realIngredients[Math.floor(Math.random()*realIngredients.length)];
+  const otherPool = [];
+  const seen = new Set(realIngredients);
+  RECIPE_DATABASE.forEach(r=>{ if(!seen.has(r.maps_to_master_item)){ seen.add(r.maps_to_master_item); otherPool.push(r.maps_to_master_item); } });
+  const decoys = pickRandomN(otherPool,3);
+  const options = shuffleArr([correct, ...decoys]);
+  return { id:`ri-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Recipes', prompt:`Which of these is used in a ${drink}?`, options, correct };
+}
+function genPourSizeQuestion(qIndex){
+  const row = RECIPE_DATABASE[Math.floor(Math.random()*RECIPE_DATABASE.length)];
+  const correct = `${row.oz} oz`;
+  const allOz = [...new Set(RECIPE_DATABASE.map(r=>`${r.oz} oz`))].filter(o=>o!==correct);
+  const decoys = pickRandomN(allOz,3);
+  const options = shuffleArr([correct, ...decoys]);
+  return { id:`ps-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Pour Sizes', prompt:`How much ${row.maps_to_master_item} goes into a ${row.drink}?`, options, correct };
+}
+
 function buildBartenderTestSet(){
   let mc = [];
-  for(let i=0;i<6;i++) mc.push(genSpecialtyDrinkQuestion(i));
-  for(let i=0;i<6;i++) mc.push(genLiquorQuestion(i));
+  for(let i=0;i<4;i++) mc.push(genSpecialtyDrinkQuestion(i));
+  for(let i=0;i<4;i++) mc.push(genLiquorQuestion(i));
+  for(let i=0;i<4;i++) mc.push(genRecipeIngredientQuestion(i));
+  for(let i=0;i<4;i++) mc.push(genPourSizeQuestion(i));
   return { mc: shuffleArr(mc) };
 }
 
@@ -1714,13 +1767,14 @@ function buildStudyDeck(topicIds){
 // ---------------- RENDER ----------------
 
 function totalTaskCount(){
-  let n=0; DAYS.forEach(d=>d.sections.forEach(s=>n+=s.items.length)); return n;
+  let n=0; getDaysForRole().forEach(d=>d.sections.forEach(s=>n+=s.items.length)); return n;
 }
 function doneTaskCount(){
   return Object.values(state.checks).filter(Boolean).length;
 }
 function dayDone(dayN){
-  const d = DAYS.find(x=>x.n===dayN);
+  const d = getDaysForRole().find(x=>x.n===dayN);
+  if(!d) return {total:0, done:0};
   let total=0, done=0;
   d.sections.forEach((s,si)=>s.items.forEach((it,ii)=>{
     total++;
@@ -1793,11 +1847,12 @@ function render(){
     const totalTasks = totalTaskCount();
     const done = doneTaskCount();
     const overallPct = Math.round((done/totalTasks)*100);
+    const dayNums = getDaysForRole().map(d=>d.n);
     html += `
     <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
-    <div class="brand-sub">Everything for your first four days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)}</div>
+    <div class="brand-sub">Everything for your first ${dayNums.length} days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)}</div>
     <div class="progress-row">
-      ${[1,2,3,4].map(n=>{
+      ${dayNums.map(n=>{
         const {total,done:dn} = dayDone(n);
         const pct = total? Math.round((dn/total)*100):0;
         return `<div class="slice"><i style="--fill:${pct}%"></i></div>`;
@@ -2106,10 +2161,14 @@ function tabBtn(id,label){
 
 
 function renderSchedule(){
-  const d = DAYS.find(x=>x.n===state.day);
-  let html = `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">Four days, one section at a time. Tap a day below to see what it covers — check things off as you go, and don't worry about doing it perfectly on the first pass.</p>`;
+  const days = getDaysForRole();
+  const d = days.find(x=>x.n===state.day) || days[0];
+  const introText = state.role==='bartender'
+    ? "Five days, one section at a time. Days 1–4 mirror Server training since bartenders serve food too — Day 5 is bar-specific."
+    : "Four days, one section at a time. Tap a day below to see what it covers — check things off as you go, and don't worry about doing it perfectly on the first pass.";
+  let html = `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">${introText}</p>`;
   html += `<div class="dayrow">`;
-  DAYS.forEach(dd=>{
+  days.forEach(dd=>{
     const {total,done:dn} = dayDone(dd.n);
     const isDone = total>0 && dn===total;
     html += `<button class="daybtn ${state.day===dd.n?'active':''} ${isDone?'done':''}" data-day="${dd.n}">
@@ -2502,7 +2561,7 @@ function renderBarLinks(){
   const studyUrl = `${base}?study=1&role=bartender`;
   return `<div class="callout" style="margin-top:0;">Preview shows exactly what they'll see. Copy grabs the link to paste into a text.</div>
   <div class="quiz-card">
-    <div class="quiz-cat">Specialty Drinks Test — graded, tracked</div>
+    <div class="quiz-cat">Day 5 Test — graded, tracked</div>
     ${renderLinkRow(testUrl)}
   </div>
   <div class="quiz-card">
@@ -2556,8 +2615,8 @@ function renderTestingPicker(){
       <button class="home-tile" data-tab="bar-links">
         <div class="ht-icon">🍸</div>
         <div class="ht-body">
-          <div class="ht-title">Send the Bar Test</div>
-          <div class="ht-sub">Preview or copy the specialty-drinks test and bar Study Guide links.</div>
+          <div class="ht-title">Send the Day 5 Test</div>
+          <div class="ht-sub">Preview or copy the comprehensive bar test and bar Study Guide links.</div>
         </div>
       </button>
     </div>`;
@@ -2903,7 +2962,7 @@ function renderBartenderTest(){
     return `<div class="focused-wrap">
       <div class="focused-head">
         <h1>Zazzo's</h1>
-        <div class="sub">Bartender — Specialty Drinks Test</div>
+        <div class="sub">Bartender — Day 5 Test</div>
       </div>
       <div class="gate-card">
         <div class="ticket-obj" style="margin-bottom:0;">Enter your name to begin.</div>
@@ -2943,7 +3002,7 @@ function renderBartenderTest(){
   let html = `<div class="focused-wrap">
     <div class="focused-head">
       <h1>Zazzo's</h1>
-      <div class="sub">Bartender Test — ${escapeHtml(bartenderTraineeName)}</div>
+      <div class="sub">Day 5 Test — ${escapeHtml(bartenderTraineeName)}</div>
     </div>`;
 
   bartenderDeck.forEach(q=>{
