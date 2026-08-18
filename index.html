@@ -963,11 +963,6 @@ let studyMcAnswer = null;
 let studyScore = {correct:0, total:0};
 let studySelfCheck = {gotIt:0, needsPractice:0};
 
-// A link like  ?prep=2  opens a plain, ungraded practice/study view for that day.
-// No name, no lockdown, no tracking — just the study questions.
-let practiceMode = false;
-let practiceDay = null;
-
 // A link like  ?study=1  opens the interactive study guide (topic picker + flashcards).
 let studyMode = false;
 
@@ -977,15 +972,11 @@ let bartenderTestMode = false;
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
-  const p = parseInt(params.get('prep'));
   const s = params.get('study');
   const bt = params.get('btest');
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
-  } else if(p && TEST_DAY_CONFIG_KEYS_OK(p)){
-    practiceMode = true;
-    practiceDay = p;
   } else if(s){
     studyMode = true;
   } else if(bt){
@@ -1805,11 +1796,6 @@ function render(){
     attachFocusedHandlers();
     return;
   }
-  if(practiceMode){
-    app.innerHTML = renderPracticeView();
-    attachHandlers();
-    return;
-  }
   if(studyMode){
     app.innerHTML = renderStudyMode();
     attachHandlers();
@@ -2611,13 +2597,10 @@ function renderLinks(){
   </div>`;
   [2,3,4].forEach(day=>{
     const testUrl = `${base}?day=${day}`;
-    const prepUrl = `${base}?prep=${day}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
       <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
       ${renderLinkRow(testUrl)}
-      <div style="font-size:13px; font-weight:700; margin:4px 0 4px;">Practice (ungraded, optional)</div>
-      ${renderLinkRow(prepUrl)}
     </div>`;
   });
   return html;
@@ -2909,37 +2892,6 @@ function renderQuiz(){
     });
     html += `</div>`;
   });
-  return html;
-}
-
-// ---------------- PRACTICE LINK (ungraded, no name, no lockdown) ----------------
-
-function renderPracticeView(){
-  const day = practiceDay;
-  const cats = QUIZ.filter(q=>q.day===day);
-  let html = `<div class="focused-wrap">
-    <div class="focused-head">
-      <h1>Zazzo's</h1>
-      <div class="sub">Day ${day} Practice — just for studying, not graded</div>
-    </div>`;
-  cats.forEach(cat=>{
-    html += `<div class="quiz-card">
-      <div class="quiz-cat">${cat.cat}</div>`;
-    cat.qs.forEach((q,qi)=>{
-      const key = `${cat.day}-${cat.cat}-${qi}`;
-      const on = !!state.quizChecks[key];
-      const ans = state.answers[key] || '';
-      html += `<div class="qrow">
-        <div class="qtext">
-          <div class="qcheck ${on?'on':''}" data-qcheck="${key}"></div>
-          <span>${q}</span>
-        </div>
-        <textarea class="answer" placeholder="Your answer / notes…" data-answer="${key}">${ans}</textarea>
-      </div>`;
-    });
-    html += `</div>`;
-  });
-  html += `</div>`;
   return html;
 }
 
