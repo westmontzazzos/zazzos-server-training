@@ -1880,7 +1880,6 @@ function render(){
   if(state.tab==='schedule') html += renderSchedule();
   if(state.tab==='guides') html += renderAccordionList(GUIDES, "These are the exact steps for the things that come up on every shift — ringing in an order, enrolling someone in loyalty, splitting a check. Come back to this tab as often as you need to.");
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS, "Zazzo's runs three ongoing perks programs — VIP, Text Club, and Pizza Club. Guests will ask about all three, so here's how each one works and how to redeem it.");
-  if(state.tab==='quiz') html += renderQuiz();
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
   if(state.tab==='results') html += renderResults();
@@ -2547,7 +2546,7 @@ function renderTraineeHub(){
       <div class="ht-icon">📝</div>
       <div class="ht-body">
         <div class="ht-title">Testing</div>
-        <div class="ht-sub">Test Prep, Study Guide, and sending tests.</div>
+        <div class="ht-sub">Study Guide and sending tests.</div>
       </div>
     </button>
     <button class="home-tile" data-tab="results">
@@ -2609,13 +2608,6 @@ function renderLinks(){
 function renderTestingPicker(){
   if(state.role==='bartender'){
     return `<div class="home-tiles">
-      <button class="home-tile" data-tab="quiz">
-        <div class="ht-icon">📚</div>
-        <div class="ht-body">
-          <div class="ht-title">Test Prep</div>
-          <div class="ht-sub">The full question bank, organized by day, with notes.</div>
-        </div>
-      </button>
       <button class="home-tile" data-tab="links">
         <div class="ht-icon">🔗</div>
         <div class="ht-body">
@@ -2633,13 +2625,6 @@ function renderTestingPicker(){
     </div>`;
   }
   return `<div class="home-tiles">
-    <button class="home-tile" data-tab="quiz">
-      <div class="ht-icon">📚</div>
-      <div class="ht-body">
-        <div class="ht-title">Test Prep</div>
-        <div class="ht-sub">The full question bank, organized by day, with notes.</div>
-      </div>
-    </button>
     <button class="home-tile" data-tab="links">
       <div class="ht-icon">🔗</div>
       <div class="ht-body">
@@ -2662,22 +2647,9 @@ function renderQuestionBank(){
   </div>
   <div class="print-doc">
   <h1 style="font-family:'Libre Baskerville',serif;">${role==='bartender'?'Bartender':'Server'} — Complete Question Bank</h1>
-  <p style="color:var(--muted); margin-bottom:20px;">Everything that can appear in Test Prep, Practice, and the actual graded Test — pulled live from the current app data. Nothing here is a fixed sample; these are the full real pools each random question draws from.</p>
+  <p style="color:var(--muted); margin-bottom:20px;">Every question that can appear in the actual graded Test — pulled live from the current app data. Nothing here is a fixed sample; these are the full real pools each random question draws from.</p>
 
-  <h2 style="margin-top:24px;">PART 1 — Practice / Test Prep Questions</h2>`;
-
-  const byDay = {};
-  QUIZ.forEach(entry=>{ byDay[entry.day] = byDay[entry.day] || []; byDay[entry.day].push(entry); });
-  Object.keys(byDay).sort().forEach(day=>{
-    html += `<h3>Day ${day}</h3>`;
-    byDay[day].forEach(entry=>{
-      html += `<p><b>${entry.cat}</b></p><ul>`;
-      entry.qs.forEach(q=>{ html += `<li>${q}</li>`; });
-      html += `</ul>`;
-    });
-  });
-
-  html += `<h2 style="margin-top:28px;">PART 2 — Test Questions (full real pools)</h2>`;
+  <h2 style="margin-top:24px;">Test Questions (full real pools)</h2>`;
 
   html += `<h3>Day 2 — Specialty Pizzas (${SPECIALTY_PIZZAS.length} real pizzas, standardized)</h3><ul>`;
   SPECIALTY_PIZZAS.forEach(p=>{ html += `<li><b>${p.name}:</b> ${p.desc}</li>`; });
@@ -2699,6 +2671,13 @@ function renderQuestionBank(){
   });
   html += `</ul>`;
 
+  html += `<h3>Day 2 — Specials, Loyalty Program (short answer, ungraded but part of the Test)</h3>`;
+  QUIZ.filter(q=>q.day===2 && ['Specials','Loyalty Program'].includes(q.cat)).forEach(entry=>{
+    html += `<p><b>${entry.cat}</b></p><ul>`;
+    entry.qs.forEach(q=>{ html += `<li>${q}</li>`; });
+    html += `</ul>`;
+  });
+
   html += `<h3>Day 3 — Dinners, Handhelds, Burgers, Wraps</h3>`;
   ['Dinners','Handhelds','Burgers','Wraps'].forEach(cat=>{
     html += `<p><b>${cat}</b> (${MENU_DATA.dinein[cat].length} items)</p><ul>`;
@@ -2717,8 +2696,15 @@ function renderQuestionBank(){
   FIXED_MC_BANK.Soup.forEach(q=>{ html += `<li>${q.prompt} <b>(${q.correct})</b></li>`; });
   html += `</ul>`;
 
+  html += `<h3>Day 4 — Liquor, Coupons & VIP (short answer, ungraded but part of the Test)</h3>`;
+  QUIZ.filter(q=>q.day===4 && ['Liquor','Coupons & VIP'].includes(q.cat)).forEach(entry=>{
+    html += `<p><b>${entry.cat}</b></p><ul>`;
+    entry.qs.forEach(q=>{ html += `<li>${q}</li>`; });
+    html += `</ul>`;
+  });
+
   if(role==='bartender'){
-    html += `<h2 style="margin-top:28px;">PART 3 — Day 5 Bar Test (full real pools)</h2>`;
+    html += `<h2 style="margin-top:28px;">Day 5 Bar Test (full real pools)</h2>`;
 
     html += `<h3>Liquor brands, by category</h3>`;
     LIQUOR_POOL_CATS.forEach(cat=>{
@@ -2861,37 +2847,6 @@ function renderPrintTest(){
     });
   }
   html += `</div>`;
-  return html;
-}
-
-function renderQuiz(){
-  const days = [2,3,4];
-  let html = `<div class="day-pill-row">`;
-  days.forEach(n=>{
-    html += `<button class="pill ${state.quizDay===n || (!state.quizDay && n===2)?'active':''}" data-qday="${n}">Day ${n}</button>`;
-  });
-  html += `</div>`;
-
-  const activeDay = state.quizDay || 2;
-  const cats = QUIZ.filter(q=>q.day===activeDay);
-
-  cats.forEach(cat=>{
-    html += `<div class="quiz-card">
-      <div class="quiz-cat">${cat.cat}</div>`;
-    cat.qs.forEach((q,qi)=>{
-      const key = `${cat.day}-${cat.cat}-${qi}`;
-      const on = !!state.quizChecks[key];
-      const ans = state.answers[key] || '';
-      html += `<div class="qrow">
-        <div class="qtext">
-          <div class="qcheck ${on?'on':''}" data-qcheck="${key}"></div>
-          <span>${q}</span>
-        </div>
-        <textarea class="answer" placeholder="Your answer / notes…" data-answer="${key}">${ans}</textarea>
-      </div>`;
-    });
-    html += `</div>`;
-  });
   return html;
 }
 
