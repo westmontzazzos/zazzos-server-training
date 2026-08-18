@@ -1592,7 +1592,8 @@ function genLiquorQuestion(qIndex){
   const names = MENU_DATA.liquor[cat];
   const name = names[Math.floor(Math.random()*names.length)];
   const otherPool = [];
-  LIQUOR_POOL_CATS.forEach(c=>{ if(c!==cat) MENU_DATA.liquor[c].forEach(n=>otherPool.push(n)); });
+  const seen = new Set([name]);
+  LIQUOR_POOL_CATS.forEach(c=>{ if(c!==cat) MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }); });
   const decoys = pickRandomN(otherPool,3);
   const options = shuffleArr([name, ...decoys]);
   return { id:`l-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Liquor', prompt:`Which of these is one of our current ${cat} options?`, options, correct:name };
@@ -1605,7 +1606,8 @@ function genSpecialtyDrinkQuestion(qIndex){
   const names = MENU_DATA.liquor[cat];
   const name = names[Math.floor(Math.random()*names.length)];
   const otherPool = [];
-  LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>otherPool.push(n)));
+  const seen = new Set([name]);
+  LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }));
   const decoys = pickRandomN(otherPool,3);
   const options = shuffleArr([name, ...decoys]);
   return { id:`sd-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Specialty Drinks', prompt:`Which of these is one of our current ${cat}?`, options, correct:name };
@@ -1657,7 +1659,8 @@ function genSingleLiquorCatQuestion(cat, qIndex){
   const names = MENU_DATA.liquor[cat];
   const name = names[Math.floor(Math.random()*names.length)];
   const otherPool = [];
-  LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>otherPool.push(n)));
+  const seen = new Set([name]);
+  LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }));
   const decoys = pickRandomN(otherPool,3);
   const options = shuffleArr([name, ...decoys]);
   return { id:`slc-${cat}-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat, prompt:`Which of these is one of our current ${cat} options?`, options, correct:name };
