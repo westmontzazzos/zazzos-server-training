@@ -2670,15 +2670,41 @@ const HR_FORMS = [
   { name: "Driver New Hire Form", file: "forms/Driver-New-Hire-Form.pdf", desc: "Independent contractor agreement for delivery drivers." }
 ];
 function renderFormsPicker(){
-  let html = `<div class="callout" style="margin-top:0;">Tap a document to open it. Once it's open, use your phone's own "Done" button to come back here, and the share icon to print.</div>`;
-  HR_FORMS.forEach(f=>{
+  let html = `<div class="callout" style="margin-top:0;">Tap a document to bring up the share sheet — Print is right there as an option, along with Save to Files and Mail. Nothing opens in a new tab.</div>`;
+  HR_FORMS.forEach((f,i)=>{
     html += `<div class="quiz-card">
       <div class="mcq-prompt" style="margin-bottom:4px;">${f.name}</div>
       <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">${f.desc}</div>
-      <a href="${f.file}" class="submit-btn" style="text-decoration:none; display:block; text-align:center;">Open Document</a>
+      <button type="button" class="submit-btn" data-sharepdf="${f.file}" data-sharename="${f.name}">Open & Print</button>
     </div>`;
   });
   return html;
+}
+// Same share-sheet handoff pattern already proven in the real schedule apps —
+// works inside a standalone home-screen app where there's no browser chrome at all.
+async function shareOrDownloadPDF(url, filename){
+  try{
+    const res = await fetch(url);
+    const blob = await res.blob();
+    if(navigator.canShare){
+      const file = new File([blob], filename + '.pdf', { type: 'application/pdf' });
+      if(navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], title: filename }).catch(()=>{});
+        return;
+      }
+    }
+    // Fallback (desktop / older browsers): download the file directly
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(objUrl); }, 4000);
+  }catch(e){
+    console.error('PDF share/download failed', e);
+    window.open(url, '_blank');
+  }
 }
 
 function renderPrintPicker(){
@@ -3498,6 +3524,16 @@ function attachHandlers(){
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(url).then(done).catch(()=>{});
       }
+    });
+  });
+  document.querySelectorAll('[data-sharepdf]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const original = el.textContent;
+      el.disabled = true;
+      el.textContent = 'Opening…';
+      await shareOrDownloadPDF(el.dataset.sharepdf, el.dataset.sharename);
+      el.disabled = false;
+      el.textContent = original;
     });
   });
   document.querySelectorAll('[data-day]').forEach(el=>{
