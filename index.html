@@ -1623,16 +1623,16 @@ function genFixedMCQuestion(cat, qIndex){
 }
 
 const TEST_DAY_CONFIG = {
-  2: { mc:[{label:'Specialty Pizzas', source:'specialtypizza', cat:'Pizzas', n:4}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:4},
+  2: { mc:[{label:'Specialty Pizzas', source:'specialtypizza', cat:'Pizzas', n:3}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:3},
            {label:'Pizza Crust', source:'fixedmc', cat:'Pizza Crust', n:2}, {label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:1},
            {label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:2}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:2},
-           {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
+           {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:1}],
        fixedCats:['Specials','Loyalty Program'] },
-  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:3}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:3},
-           {label:'Burgers', source:'dinein', cat:'Burgers', n:2}, {label:'Wraps', source:'dinein', cat:'Wraps', n:2}],
+  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:6}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:7},
+           {label:'Burgers', source:'dinein', cat:'Burgers', n:4}, {label:'Wraps', source:'dinein', cat:'Wraps', n:3}],
        fixedCats:[] },
-  4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:4}, {label:'Desserts', source:'dinein', cat:'Desserts', n:3},
-           {label:'Salads', source:'dinein', cat:'Salads', n:3}, {label:'Soup', source:'fixedmc', cat:'Soup', n:1},
+  4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:5}, {label:'Desserts', source:'dinein', cat:'Desserts', n:4},
+           {label:'Salads', source:'dinein', cat:'Salads', n:4}, {label:'Soup', source:'fixedmc', cat:'Soup', n:1},
            {label:'Draft Beer', source:'singleliquorcat', cat:'Draft Beer', n:1}, {label:'Coupons & VIP', source:'fixedmc', cat:'Coupons & VIP', n:3}],
        fixedCats:['Liquor'] }
 };
@@ -1644,13 +1644,17 @@ function shuffleArr(arr){
 }
 function pickRandomN(arr,n){ return shuffleArr(arr).slice(0,Math.min(n,arr.length)); }
 
-function genDineinQuestion(catName, qIndex){
-  const items = MENU_DATA.dinein[catName];
+function genDineinQuestion(catName, qIndex, usedNames){
+  usedNames = usedNames || new Set();
+  const allItems = MENU_DATA.dinein[catName];
+  const available = allItems.filter(i=>!usedNames.has(i.name));
+  const items = available.length ? available : allItems;
   const item = items[Math.floor(Math.random()*items.length)];
+  usedNames.add(item.name);
   const useDesc = item.desc && item.desc.length > 8 && Math.random() < 0.6;
   if(useDesc){
     const seenDescs = new Set([item.desc]);
-    const others = items.filter(x=>{
+    const others = allItems.filter(x=>{
       if(x.name===item.name || !x.desc || x.desc.length<=8) return false;
       if(seenDescs.has(x.desc)) return false;
       return true;
@@ -1681,10 +1685,18 @@ function genMembershipQuestion(catName, item){
   const options = shuffleArr([item.name, ...decoys]);
   return { id:`m-${catName}-${item.name}-${Math.random().toString(36).slice(2,7)}`, cat:catName, prompt:`Which of these is one of our current ${catName}?`, options, correct:item.name };
 }
-function genLiquorQuestion(qIndex){
-  const cat = LIQUOR_POOL_CATS[Math.floor(Math.random()*LIQUOR_POOL_CATS.length)];
-  const names = MENU_DATA.liquor[cat];
+function genLiquorQuestion(qIndex, usedNames){
+  usedNames = usedNames || new Set();
+  let cat, names;
+  let attempts = 0;
+  do {
+    cat = LIQUOR_POOL_CATS[Math.floor(Math.random()*LIQUOR_POOL_CATS.length)];
+    names = MENU_DATA.liquor[cat].filter(n=>!usedNames.has(n));
+    attempts++;
+  } while(names.length===0 && attempts<30);
+  if(names.length===0){ cat = LIQUOR_POOL_CATS[Math.floor(Math.random()*LIQUOR_POOL_CATS.length)]; names = MENU_DATA.liquor[cat]; }
   const name = names[Math.floor(Math.random()*names.length)];
+  usedNames.add(name);
   const otherPool = [];
   const seen = new Set([name]);
   LIQUOR_POOL_CATS.forEach(c=>{ if(c!==cat) MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }); });
@@ -1695,10 +1707,18 @@ function genLiquorQuestion(qIndex){
 
 // ---------------- BARTENDER: specialty drinks test (built from real liquor menu data) ----------------
 const SPECIALTY_DRINK_CATS = ['Classic Cocktails','Signature Martinis'];
-function genSpecialtyDrinkQuestion(qIndex){
-  const cat = SPECIALTY_DRINK_CATS[Math.floor(Math.random()*SPECIALTY_DRINK_CATS.length)];
-  const names = MENU_DATA.liquor[cat];
+function genSpecialtyDrinkQuestion(qIndex, usedNames){
+  usedNames = usedNames || new Set();
+  let cat, names;
+  let attempts = 0;
+  do {
+    cat = SPECIALTY_DRINK_CATS[Math.floor(Math.random()*SPECIALTY_DRINK_CATS.length)];
+    names = MENU_DATA.liquor[cat].filter(n=>!usedNames.has(n));
+    attempts++;
+  } while(names.length===0 && attempts<30);
+  if(names.length===0){ cat = SPECIALTY_DRINK_CATS[Math.floor(Math.random()*SPECIALTY_DRINK_CATS.length)]; names = MENU_DATA.liquor[cat]; }
   const name = names[Math.floor(Math.random()*names.length)];
+  usedNames.add(name);
   const otherPool = [];
   const seen = new Set([name]);
   LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }));
@@ -1722,18 +1742,26 @@ function genRecipeIngredientQuestion(qIndex){
   const options = shuffleArr([correct, ...decoys]);
   return { id:`ri-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Recipes', prompt:`Which of these is used in a ${drink}?`, options, correct };
 }
-function genPourSizeQuestion(qIndex){
-  const row = RECIPE_DATABASE[Math.floor(Math.random()*RECIPE_DATABASE.length)];
+function genPourSizeQuestion(qIndex, usedRows){
+  usedRows = usedRows || new Set();
+  const available = RECIPE_DATABASE.filter(r=>!usedRows.has(r.drink+'|'+r.maps_to_master_item));
+  const pool = available.length ? available : RECIPE_DATABASE;
+  const row = pool[Math.floor(Math.random()*pool.length)];
+  usedRows.add(row.drink+'|'+row.maps_to_master_item);
   const correct = `${row.oz} oz`;
   const allOz = [...new Set(RECIPE_DATABASE.map(r=>`${r.oz} oz`))].filter(o=>o!==correct);
   const decoys = pickRandomN(allOz,3);
   const options = shuffleArr([correct, ...decoys]);
   return { id:`ps-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Pour Sizes', prompt:`How much ${row.maps_to_master_item} goes into a ${row.drink}?`, options, correct };
 }
-function genWineGlassQuestion(qIndex){
+function genWineGlassQuestion(qIndex, usedNames){
+  usedNames = usedNames || new Set();
   const wines = MENU_DATA.liquor.Wine;
-  const glassWines = wines.filter(w=>w.includes('(Glass)'));
+  const allGlass = wines.filter(w=>w.includes('(Glass)'));
+  const available = allGlass.filter(w=>!usedNames.has(w));
+  const glassWines = available.length ? available : allGlass;
   const correct = glassWines[Math.floor(Math.random()*glassWines.length)];
+  usedNames.add(correct);
   const seen = new Set([correct]);
   const pool = [];
   wines.forEach(w=>{ if(!w.includes('(Glass)') && !seen.has(w)){ seen.add(w); pool.push(w); } });
@@ -1744,28 +1772,32 @@ function genWineGlassQuestion(qIndex){
 
 function buildBartenderTestSet(){
   let mc = [];
-  for(let i=0;i<3;i++) mc.push(genSpecialtyDrinkQuestion(i));
-  for(let i=0;i<3;i++) mc.push(genLiquorQuestion(i));
-  for(let i=0;i<2;i++) mc.push(genRecipeIngredientQuestion(i));
-  for(let i=0;i<2;i++) mc.push(genPourSizeQuestion(i));
-  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('Domestic Bottled Beer', i));
-  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('House Wine (Canyon Road, by the glass)', i));
-  mc.push(genSingleLiquorCatQuestion('Happy Hour Family Brands', 0));
-  mc.push(genWineGlassQuestion(0));
+  const usedLiquorNames = new Set();
+  const usedPourRows = new Set();
+  for(let i=0;i<4;i++) mc.push(genSpecialtyDrinkQuestion(i, usedLiquorNames));
+  for(let i=0;i<4;i++) mc.push(genLiquorQuestion(i, usedLiquorNames));
+  for(let i=0;i<3;i++) mc.push(genRecipeIngredientQuestion(i));
+  for(let i=0;i<3;i++) mc.push(genPourSizeQuestion(i, usedPourRows));
+  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('Domestic Bottled Beer', i, usedLiquorNames));
+  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('House Wine (Canyon Road, by the glass)', i, usedLiquorNames));
+  mc.push(genSingleLiquorCatQuestion('Happy Hour Family Brands', 0, usedLiquorNames));
+  mc.push(genWineGlassQuestion(0, usedLiquorNames));
   return { mc: shuffleArr(mc) };
 }
 
 function buildTestSet(day){
   const cfg = TEST_DAY_CONFIG[day];
   let mc = [];
+  const usedDineinNames = new Set();
+  const usedLiquorNames = new Set();
   cfg.mc.forEach(group=>{
     for(let i=0;i<group.n;i++){
-      if(group.source==='liquor') mc.push(genLiquorQuestion(i));
-      else if(group.source==='singleliquorcat') mc.push(genSingleLiquorCatQuestion(group.cat, i));
+      if(group.source==='liquor') mc.push(genLiquorQuestion(i, usedLiquorNames));
+      else if(group.source==='singleliquorcat') mc.push(genSingleLiquorCatQuestion(group.cat, i, usedLiquorNames));
       else if(group.source==='fixedmc') mc.push(genFixedMCQuestion(group.cat, i));
       else if(group.source==='specialtypizza') mc.push(genSpecialtyPizzaQuestion(i));
       else if(group.source==='pizzatopping') mc.push(genPizzaToppingQuestion(i));
-      else mc.push(genDineinQuestion(group.cat, i));
+      else mc.push(genDineinQuestion(group.cat, i, usedDineinNames));
     }
   });
   return { mc };
@@ -1792,9 +1824,13 @@ const STUDY_TOPICS = [
   {id:'bar-specialty', label:'Cocktails & Martinis', kind:'specialty', forBartender:true}
 ];
 
-function genSingleLiquorCatQuestion(cat, qIndex){
-  const names = MENU_DATA.liquor[cat];
+function genSingleLiquorCatQuestion(cat, qIndex, usedNames){
+  usedNames = usedNames || new Set();
+  const allNames = MENU_DATA.liquor[cat];
+  const available = allNames.filter(n=>!usedNames.has(n));
+  const names = available.length ? available : allNames;
   const name = names[Math.floor(Math.random()*names.length)];
+  usedNames.add(name);
   const otherPool = [];
   const seen = new Set([name]);
   LIQUOR_POOL_CATS.filter(c=>c!==cat).forEach(c=>MENU_DATA.liquor[c].forEach(n=>{ if(!seen.has(n)){ seen.add(n); otherPool.push(n); } }));
