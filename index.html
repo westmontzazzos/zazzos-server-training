@@ -968,19 +968,25 @@ let studyMode = false;
 
 // A link like  ?btest=1  opens the Bartender specialty-drinks test.
 let bartenderTestMode = false;
+// A link like  ?day=2&preview=1  shows the questions with no lockdown, no name gate, no submission —
+// for a manager to look at, not for a trainee to actually take.
+let previewMode = false;
 
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
   const s = params.get('study');
   const bt = params.get('btest');
+  const pv = params.get('preview');
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
+    previewMode = !!pv;
   } else if(s){
     studyMode = true;
   } else if(bt){
     bartenderTestMode = true;
+    previewMode = !!pv;
   }
 })();
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
@@ -1453,11 +1459,11 @@ const PROGRAMS = [
 function buildMatchingQuestion(items){
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const order = shuffleArr(items.map((_,idx)=>idx));
-  const namesList = items.map((i,idx)=>`${idx+1}. ${i.name}`).join('\n');
-  const descsList = order.map((origIdx,pos)=>`${letters[pos]}. ${items[origIdx].desc}`).join('\n');
-  const prompt = `Match each item to its description. Write the matching letter next to each number.\n\n${namesList}\n\n${descsList}`;
-  const answer = items.map((i,idx)=>`${idx+1}=${letters[order.indexOf(idx)]}`).join(', ');
-  return { prompt, answer };
+  const names = items.map(i=>i.name);
+  const descs = order.map(origIdx=>items[origIdx].desc);
+  const correctLetters = items.map((i,idx)=>letters[order.indexOf(idx)]);
+  const answer = items.map((i,idx)=>`${idx+1}=${correctLetters[idx]}`).join(', ');
+  return { matching:true, names, descs, letters: letters.slice(0, items.length), correctLetters, answer };
 }
 
 const QUIZ = [
@@ -2588,7 +2594,17 @@ function renderServerFixedAnswers(fixedAnswers){
   let html = '';
   Object.keys(fixedAnswers).forEach(key=>{
     const val = fixedAnswers[key];
-    if(key.startsWith('dyn-')){
+    if(key.startsWith('dyn-') && val.matching){
+      html += `<div style="margin-top:8px; font-size:13px;">
+        <div style="font-weight:700;">${escapeHtml(val.cat)} — matching: <span style="color:#1B6B3A;">${val.score}</span></div>`;
+      val.names.forEach((name,i)=>{
+        const given = (val.responses[i]||'').trim().toUpperCase();
+        const correct = val.correctLetters[i];
+        const isRight = given === correct;
+        html += `<div style="margin-top:4px; color:${isRight?'#1B6B3A':'#C0392B'};">${i+1}. ${escapeHtml(name)}: wrote "${escapeHtml(given||'—')}", correct is "${correct}"</div>`;
+      });
+      html += `</div>`;
+    } else if(key.startsWith('dyn-')){
       html += `<div style="margin-top:8px; font-size:13px;">
         <div style="font-weight:700;">${escapeHtml(val.cat)}: ${escapeHtml(val.prompt).replace(/\n/g,'<br>')}</div>
         <div style="color:var(--muted); white-space:pre-wrap;">${escapeHtml(val.response || '(left blank)')}</div>
@@ -3516,15 +3532,34 @@ function renderFocusedTest(){
   if(set.dynamicFixed && set.dynamicFixed.length){
     if(!cfg.fixedCats.length) html += `<div class="fixed-label">Short answer</div>`;
     set.dynamicFixed.forEach((q,qi)=>{
-      const key = `dyn-${qi}`;
-      const ans = state.testFixedAnswers[key] || '';
-      html += `<div class="quiz-card">
-        <div class="quiz-cat">${q.cat}</div>
-        <div class="qrow">
-          <div class="qtext"><span style="white-space:pre-wrap;">${escapeHtml(q.prompt)}</span></div>
-          <textarea class="answer" placeholder="Answer…" data-tfanswer="${key}">${ans}</textarea>
-        </div>
-      </div>`;
+      if(q.matching){
+        html += `<div class="quiz-card">
+          <div class="quiz-cat">${q.cat}</div>
+          <div class="qtext" style="margin-bottom:10px;">Match each item to its description. Write the matching letter in the box.</div>`;
+        q.names.forEach((name,itemIdx)=>{
+          const key = `dyn-${qi}-${itemIdx}`;
+          const val = state.testFixedAnswers[key] || '';
+          html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="flex:1; font-size:14px;">${itemIdx+1}. ${escapeHtml(name)}</div>
+            <input class="letter-input" maxlength="1" data-tfanswer="${key}" value="${escapeHtml(val)}" style="width:44px; height:36px; text-align:center; font-weight:700; font-size:15px; border:1.5px solid var(--hair); border-radius:8px;">
+          </div>`;
+        });
+        html += `<div style="background:var(--bg); border-radius:10px; padding:12px 14px; margin-top:12px; font-size:13px; line-height:1.6;">`;
+        q.descs.forEach((desc,pos)=>{
+          html += `<b>${q.letters[pos]}.</b> ${escapeHtml(desc)}<br>`;
+        });
+        html += `</div></div>`;
+      } else {
+        const key = `dyn-${qi}`;
+        const ans = state.testFixedAnswers[key] || '';
+        html += `<div class="quiz-card">
+          <div class="quiz-cat">${q.cat}</div>
+          <div class="qrow">
+            <div class="qtext"><span style="white-space:pre-wrap;">${escapeHtml(q.prompt)}</span></div>
+            <textarea class="answer" placeholder="Answer…" data-tfanswer="${key}">${ans}</textarea>
+          </div>
+        </div>`;
+      }
     });
   }
 
@@ -3547,13 +3582,27 @@ async function submitTestResult(status, failReason){
     if(k.startsWith(`test-${day}-`)) fixedAnswersForDay[k] = state.testFixedAnswers[k];
   });
   (set.dynamicFixed||[]).forEach((q,qi)=>{
-    const key = `dyn-${qi}`;
-    fixedAnswersForDay[key] = {
-      cat: q.cat,
-      prompt: q.prompt,
-      reference_answer: q.answer,
-      response: state.testFixedAnswers[key] || ''
-    };
+    if(q.matching){
+      const responses = q.names.map((name,itemIdx)=>state.testFixedAnswers[`dyn-${qi}-${itemIdx}`] || '');
+      const numCorrect = responses.filter((r,itemIdx)=>r.trim().toUpperCase()===q.correctLetters[itemIdx]).length;
+      fixedAnswersForDay[`dyn-${qi}`] = {
+        cat: q.cat,
+        matching: true,
+        names: q.names,
+        responses,
+        correctLetters: q.correctLetters,
+        descs: q.descs,
+        score: `${numCorrect}/${q.names.length}`
+      };
+    } else {
+      const key = `dyn-${qi}`;
+      fixedAnswersForDay[key] = {
+        cat: q.cat,
+        prompt: q.prompt,
+        reference_answer: q.answer,
+        response: state.testFixedAnswers[key] || ''
+      };
+    }
   });
   const payload = {
     trainee_name: traineeName.trim(),
