@@ -1652,10 +1652,9 @@ function genFixedMCQuestion(cat, qIndex){
 }
 
 const TEST_DAY_CONFIG = {
-  2: { mc:[{label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:3},
-           {label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
+  2: { mc:[{label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
            {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
-       fixedCats:['Loyalty Program'] },
+       fixedCats:[] },
   3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:6}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:7},
            {label:'Burgers', source:'dinein', cat:'Burgers', n:4}, {label:'Wraps', source:'dinein', cat:'Wraps', n:3}],
        fixedCats:[] },
@@ -1857,7 +1856,7 @@ const DYNAMIC_FIXED = {
     { cat: 'Appetizers', gen: () => buildMatchingQuestion(MENU_DATA.dinein.Appetizers) },
     { cat: 'Specials', gen: () => buildMatchingQuestion(SPECIALS_MATCHING) },
     { cat: 'Pizza Crust Sizes', gen: () => buildMatchingQuestion(CRUST_SIZE_MATCHING) },
-    { cat: 'Customer Entry', gen: () => buildOrderingQuestion(CUSTOMER_ENROLLMENT_STEPS) }
+    { cat: 'Loyalty Program', gen: () => buildOrderingQuestion(CUSTOMER_ENROLLMENT_STEPS) }
   ]
 };
 function buildTestSet(day){
@@ -2548,7 +2547,7 @@ function renderResults(){
       html += `<div class="quiz-card">
         <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-        ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>${renderServerFixedAnswers(r.fixed_answers)}`}
+        ${r.role === 'bartender' ? renderBartenderAnswers(r.fixed_answers) : (r.mc_total > 0 ? `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>` : '') + renderServerFixedAnswers(r.fixed_answers)}
         ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
       </div>`;
     });
@@ -2606,7 +2605,7 @@ function renderResults(){
       <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
       <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(r.trainee_name)}</div>
       <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-      ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>${renderServerFixedAnswers(r.fixed_answers)}`}
+      ${r.role === 'bartender' ? renderBartenderAnswers(r.fixed_answers) : (r.mc_total > 0 ? `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>` : '') + renderServerFixedAnswers(r.fixed_answers)}
       ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
     </div>`;
   });
@@ -3670,7 +3669,7 @@ function renderFocusedTest(){
   }
 
   html += `<div class="score-bar" style="margin-top:6px;">
-    <div><div class="lbl">${answered}/${set.mc.length} multiple choice answered</div></div>
+    ${set.mc.length ? `<div><div class="lbl">${answered}/${set.mc.length} multiple choice answered</div></div>` : ''}
   </div>
   <button class="submit-btn" id="submit-test-btn">Submit Test</button>
   </div>`;
