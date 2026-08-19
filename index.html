@@ -953,7 +953,9 @@ let state = {
   trainees: null,
   traineesLoading: false,
   activeHires: null,
-  activeHiresLoading: false
+  activeHiresLoading: false,
+  completedHires: null,
+  completedHiresLoading: false
 };
 
 // ---------------- FOCUSED TEST-LINK MODE ----------------
@@ -2131,11 +2133,12 @@ function render(){
     return;
   }
 
+  const backTarget = (state.tab==='trainee-hub' && state.traineeSource) ? state.traineeSource : (PARENT_TAB[state.tab] || 'home');
   let html = `
   <div class="hero">
     <div class="eyebrow">
       <a href="#" id="nav-home-link" class="home-btn">🏠 Home</a>
-      <a href="#" id="nav-back-link" data-backto="${PARENT_TAB[state.tab] || 'home'}" class="home-btn">← Back</a>
+      <a href="#" id="nav-back-link" data-backto="${backTarget}" class="home-btn">← Back</a>
     </div>
     <div class="zazzos-word" id="${state.tab==='trainee-hub' ? 'secret-tap-target' : ''}">Zazzo's</div>`;
 
@@ -2173,6 +2176,7 @@ function render(){
   `;
 
   if(state.tab==='active-hires') html += renderActiveHires();
+  if(state.tab==='completed-hires') html += renderCompletedHires();
   if(state.tab==='trainee-hub') html += renderTraineeHub();
   if(state.tab==='schedule') html += renderSchedule();
   if(state.tab==='guides') html += renderAccordionList(GUIDES, "These are the exact steps for the things that come up on every shift — ringing in an order, enrolling someone in loyalty, splitting a check. Come back to this tab as often as you need to.");
@@ -2269,6 +2273,13 @@ function renderBartenderHub(){
           <div class="ht-sub">Everyone currently in training — tap a name for their schedule, tests, and results.</div>
         </div>
       </button>
+      <button class="home-tile" data-tab="completed-hires">
+        <div class="ht-icon">✅</div>
+        <div class="ht-body">
+          <div class="ht-title">Completed Training</div>
+          <div class="ht-sub">Everyone who's finished — tap a name for their full history and results.</div>
+        </div>
+      </button>
       <button class="home-tile" data-tab="print">
         <div class="ht-icon">🖨️</div>
         <div class="ht-body">
@@ -2317,6 +2328,13 @@ function renderHome(){
         <div class="ht-body">
           <div class="ht-title">Active New Hires</div>
           <div class="ht-sub">Everyone currently in training — tap a name for their schedule, tests, and results.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="completed-hires">
+        <div class="ht-icon">✅</div>
+        <div class="ht-body">
+          <div class="ht-title">Completed Training</div>
+          <div class="ht-sub">Everyone who's finished — tap a name for their full history and results.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="print">
@@ -2467,7 +2485,7 @@ function attachSignInHandlers(){
 }
 
 const PARENT_TAB = {
-  newhire:'home', 'active-hires':'home', print:'home', forms:'home',
+  newhire:'home', 'active-hires':'home', 'completed-hires':'home', print:'home', forms:'home',
   'trainee-hub':'active-hires',
   schedule:'trainee-hub', guides:'trainee-hub', programs:'trainee-hub',
   testing:'trainee-hub', results:'trainee-hub', 'bar-guide':'trainee-hub',
@@ -2881,6 +2899,23 @@ async function fetchActiveHires(){
   state.activeHiresLoading = false;
   if(state.tab==='active-hires') render();
 }
+async function fetchCompletedHires(){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/trainees?select=*&role=eq.${state.role}&status=eq.completed&order=updated_at.desc&limit=200`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(res.ok){
+      state.completedHires = await res.json();
+    } else {
+      state.completedHires = [];
+    }
+  }catch(e){
+    console.error('fetchCompletedHires failed', e);
+    state.completedHires = [];
+  }
+  state.completedHiresLoading = false;
+  if(state.tab==='completed-hires') render();
+}
 
 function renderActiveHires(){
   if(state.activeHires === null && !state.activeHiresLoading){
@@ -2902,6 +2937,34 @@ function renderActiveHires(){
   state.activeHires.forEach(t=>{
     html += `<button class="home-tile" data-viewtrainee="${t.id}" style="margin-bottom:12px;">
       <div class="ht-icon">🧑‍🍳</div>
+      <div class="ht-body">
+        <div class="ht-title">${escapeHtml(t.name)}</div>
+        <div class="ht-sub">Started ${isoToDateStr(t.start_date)}</div>
+      </div>
+    </button>`;
+  });
+  return html;
+}
+function renderCompletedHires(){
+  if(state.completedHires === null && !state.completedHiresLoading){
+    state.completedHiresLoading = true;
+    fetchCompletedHires();
+  }
+  let html = `<div class="score-bar" style="margin-bottom:14px;">
+    <div><div class="lbl">Completed Training</div></div>
+    <button class="newset-btn" data-refreshcompletedhires="1">Refresh</button>
+  </div>`;
+  if(state.completedHiresLoading && state.completedHires === null){
+    html += `<div class="ticket-obj" style="padding:0 4px;">Loading…</div>`;
+    return html;
+  }
+  if(!state.completedHires || state.completedHires.length===0){
+    html += `<div class="callout">Nobody's finished training yet.</div>`;
+    return html;
+  }
+  state.completedHires.forEach(t=>{
+    html += `<button class="home-tile" data-viewtrainee="${t.id}" style="margin-bottom:12px;">
+      <div class="ht-icon">✅</div>
       <div class="ht-body">
         <div class="ht-title">${escapeHtml(t.name)}</div>
         <div class="ht-sub">Started ${isoToDateStr(t.start_date)}</div>
@@ -4276,8 +4339,11 @@ function attachHandlers(){
   document.querySelectorAll('[data-viewtrainee]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const id = parseInt(el.dataset.viewtrainee);
-      const row = (state.activeHires||[]).find(t=>t.id===id);
+      const fromActive = (state.activeHires||[]).find(t=>t.id===id);
+      const fromCompleted = (state.completedHires||[]).find(t=>t.id===id);
+      const row = fromActive || fromCompleted;
       if(!row) return;
+      state.traineeSource = fromActive ? 'active-hires' : 'completed-hires';
       trainee = { id: row.id, name: row.name, start_date: row.start_date };
       state.checks = row.checks || {};
       state.quizChecks = row.quiz_checks || {};
@@ -4289,6 +4355,9 @@ function attachHandlers(){
   });
   document.querySelectorAll('[data-refreshactivehires]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.activeHires = null; state.activeHiresLoading=false; render(); });
+  });
+  document.querySelectorAll('[data-refreshcompletedhires]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.completedHires = null; state.completedHiresLoading=false; render(); });
   });
   const markCompleteBtn = document.getElementById('mark-complete-btn');
   if(markCompleteBtn){
