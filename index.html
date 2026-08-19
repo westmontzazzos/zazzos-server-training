@@ -1794,13 +1794,7 @@ const BARTENDER_SHORT_ANSWER = [
 ];
 
 function buildBartenderTestSet(){
-  let mc = [];
-  const usedLiquorNames = new Set();
-  const usedPourRows = new Set();
-  for(let i=0;i<5;i++) mc.push(genLiquorQuestion(i, usedLiquorNames));
-  for(let i=0;i<3;i++) mc.push(genRecipeIngredientQuestion(i));
-  for(let i=0;i<2;i++) mc.push(genPourSizeQuestion(i, usedPourRows));
-  return { mc: shuffleArr(mc), fixed: BARTENDER_SHORT_ANSWER };
+  return { mc: [], fixed: BARTENDER_SHORT_ANSWER };
 }
 
 function buildTestSet(day){
@@ -2486,11 +2480,11 @@ function renderResults(){
     mine.forEach(r=>{
       const failed = r.status === 'failed_left_page';
       const when = new Date(r.created_at).toLocaleString();
-      const label = (r.role === 'bartender') ? 'Bartender · Specialty Drinks Test' : `Day ${r.day}`;
+      const label = (r.role === 'bartender') ? 'Bartender · Day 5 Test' : `Day ${r.day}`;
       html += `<div class="quiz-card">
         <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-        <div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>
+        ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>`}
         ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
       </div>`;
     });
@@ -2543,13 +2537,27 @@ function renderResults(){
   state.results.forEach(r=>{
     const failed = r.status === 'failed_left_page';
     const when = new Date(r.created_at).toLocaleString();
-    const label = (r.role === 'bartender') ? 'Bartender · Specialty Drinks Test' : `Day ${r.day}`;
+    const label = (r.role === 'bartender') ? 'Bartender · Day 5 Test' : `Day ${r.day}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
       <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(r.trainee_name)}</div>
       <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-      <div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>
+      ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>`}
       ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
+    </div>`;
+  });
+  return html;
+}
+function renderBartenderAnswers(fixedAnswers){
+  if(!fixedAnswers) return '';
+  let html = '';
+  BARTENDER_SHORT_ANSWER.forEach((q,qi)=>{
+    const key = `bf-${qi}`;
+    const ans = fixedAnswers[key];
+    if(ans === undefined) return;
+    html += `<div style="margin-top:8px; font-size:13px;">
+      <div style="font-weight:700;">${escapeHtml(q.prompt)}</div>
+      <div style="color:var(--muted); white-space:pre-wrap;">${escapeHtml(ans || '(left blank)')}</div>
     </div>`;
   });
   return html;
@@ -2859,23 +2867,22 @@ function renderQuestionBank(){
   });
 
   if(role==='bartender'){
-    html += `<h2 style="margin-top:28px;">Day 5 Bar Test (full real pools)</h2>`;
+    html += `<h2 style="margin-top:28px;">Day 5 Bar Test — the actual test (10 fixed short-answer questions)</h2>`;
+    html += `<ul>`;
+    BARTENDER_SHORT_ANSWER.forEach(q=>{
+      html += `<li>${q.prompt} <b>(${q.answer})</b></li>`;
+    });
+    html += `</ul>`;
 
-    html += `<h3>Liquor brands, by category (random multiple choice)</h3>`;
+    html += `<h3>Reference only — real liquor data (not currently part of the graded test)</h3>`;
     LIQUOR_POOL_CATS.forEach(cat=>{
       html += `<p><b>${cat}</b> (${MENU_DATA.liquor[cat].length} options)</p><p>${MENU_DATA.liquor[cat].join(', ')}</p>`;
     });
 
-    html += `<h3>Real Recipes (${RECIPE_DRINKS.length} drinks, random multiple choice)</h3><ul>`;
+    html += `<h3>Reference only — real recipes (not currently part of the graded test)</h3><ul>`;
     RECIPE_DRINKS.forEach(drink=>{
       const ingredients = RECIPE_DATABASE.filter(r=>r.drink===drink).map(r=>`${r.maps_to_master_item} (${r.oz} oz)`);
       html += `<li><b>${drink}:</b> ${ingredients.join(', ')}</li>`;
-    });
-    html += `</ul>`;
-
-    html += `<h3>Short Answer (${BARTENDER_SHORT_ANSWER.length} fixed questions, ungraded)</h3><ul>`;
-    BARTENDER_SHORT_ANSWER.forEach(q=>{
-      html += `<li>${q.prompt} <b>(${q.answer})</b></li>`;
     });
     html += `</ul>`;
   }
@@ -3258,8 +3265,9 @@ function renderBartenderTest(){
     html += `</div>`;
   }
 
+  const filledCount = Object.values(bartenderFixedAnswers).filter(v=>v && v.trim()).length;
   html += `<div class="score-bar" style="margin-top:6px;">
-    <div><div class="lbl">${answered}/${bartenderDeck.length} multiple choice answered</div></div>
+    <div><div class="lbl">${filledCount}/${bartenderFixed.length} questions answered</div></div>
   </div>
   <button class="submit-btn" id="submit-bartender-test-btn">Submit Test</button>
   </div>`;
