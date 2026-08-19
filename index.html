@@ -977,12 +977,15 @@ let studyMode = false;
 
 // A link like  ?btest=1  opens the Bartender specialty-drinks test.
 let bartenderTestMode = false;
-// A link like  ?day=2&preview=1  shows the questions with no lockdown, no name gate, no submission —
+// If the link was generated from a specific trainee's profile, their name is baked in and locked.
+let lockedTraineeName = '';
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
   const s = params.get('study');
   const bt = params.get('btest');
+  const tn = params.get('tname');
+  if(tn) lockedTraineeName = tn;
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
@@ -992,6 +995,7 @@ let bartenderTestMode = false;
     bartenderTestMode = true;
   }
 })();
+traineeName = lockedTraineeName || traineeName;
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
 
 // ---------------- TRAINEE SIGN-IN (main app, not the test-link mode) ----------------
@@ -2969,16 +2973,17 @@ function renderTraineeHub(){
 }
 
 function renderBarLinks(){
-  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.</div>`;
+  const lockParam = trainee ? `&tname=${encodeURIComponent(trainee.name)}` : '';
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">${trainee ? `This link is locked to ${escapeHtml(trainee.name)} — their name will already be filled in and can't be changed.` : 'Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.'}</div>`;
   html += `<div class="quiz-card">
     <div class="quiz-cat">Day 5</div>
     <div style="display:flex; gap:10px; margin-top:10px;">
       <button type="button" class="link-preview-btn" data-previewbar="1" style="flex:1;">Preview</button>
-      <button type="button" class="link-copy-btn" data-copylink="${window.location.origin}${window.location.pathname}?btest=1" style="flex:1;">Copy</button>
+      <button type="button" class="link-copy-btn" data-copylink="${window.location.origin}${window.location.pathname}?btest=1${lockParam}" style="flex:1;">Copy</button>
     </div>
   </div>`;
   [2,3,4].forEach(day=>{
-    const testUrlDay = `${window.location.origin}${window.location.pathname}?day=${day}`;
+    const testUrlDay = `${window.location.origin}${window.location.pathname}?day=${day}${lockParam}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
       <div style="display:flex; gap:10px; margin-top:10px;">
@@ -2991,9 +2996,10 @@ function renderBarLinks(){
 }
 
 function renderLinks(){
-  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.</div>`;
+  const lockParam = trainee ? `&tname=${encodeURIComponent(trainee.name)}` : '';
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">${trainee ? `This link is locked to ${escapeHtml(trainee.name)} — their name will already be filled in and can't be changed.` : 'Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.'}</div>`;
   [2,3,4].forEach(day=>{
-    const testUrl = `${window.location.origin}${window.location.pathname}?day=${day}`;
+    const testUrl = `${window.location.origin}${window.location.pathname}?day=${day}${lockParam}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
       <div style="display:flex; gap:10px; margin-top:10px;">
@@ -3489,7 +3495,7 @@ function attachStudyHandlers(){
 // ---------------- BARTENDER TEST (shared link, isolated from server test flow) ----------------
 
 let bartenderTestPhase = 'gate';
-let bartenderTraineeName = '';
+let bartenderTraineeName = lockedTraineeName || '';
 let bartenderDeck = null;
 let bartenderFixed = null;
 let bartenderMcAnswers = {};
@@ -3506,8 +3512,8 @@ function renderBartenderTest(){
         <div class="sub">Bartender — Day 5 Test</div>
       </div>
       <div class="gate-card">
-        <div class="ticket-obj" style="margin-bottom:0;">Enter your name to begin.</div>
-        <input class="name-input" id="bartender-name-input" type="text" placeholder="Your full name" value="${escapeHtml(bartenderTraineeName)}" style="margin-top:14px;">
+        <div class="ticket-obj" style="margin-bottom:0;">${lockedTraineeName ? 'Confirm it\'s you, then begin.' : 'Enter your name to begin.'}</div>
+        <input class="name-input" id="bartender-name-input" type="text" placeholder="Your full name" value="${escapeHtml(bartenderTraineeName)}" ${lockedTraineeName ? 'readonly style="margin-top:14px; background:var(--bg); color:var(--muted);"' : 'style="margin-top:14px;"'}>
         <div class="policy-box">
           Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
         </div>
@@ -3774,8 +3780,8 @@ function renderFocusedTest(){
         <div class="sub">Day ${day} Test</div>
       </div>
       <div class="gate-card">
-        <div class="ticket-obj" style="margin-bottom:0;">Enter your name to begin.</div>
-        <input class="name-input" id="trainee-name-input" type="text" placeholder="Your full name" value="${escapeHtml(traineeName)}" style="margin-top:14px;">
+        <div class="ticket-obj" style="margin-bottom:0;">${lockedTraineeName ? 'Confirm it\'s you, then begin.' : 'Enter your name to begin.'}</div>
+        <input class="name-input" id="trainee-name-input" type="text" placeholder="Your full name" value="${escapeHtml(traineeName)}" ${lockedTraineeName ? 'readonly style="margin-top:14px; background:var(--bg); color:var(--muted);"' : 'style="margin-top:14px;"'}>
         <div class="policy-box">
           Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
         </div>
