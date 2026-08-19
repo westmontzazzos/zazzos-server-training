@@ -1056,6 +1056,7 @@ async function syncTraineeProgress(){
       },
       body: JSON.stringify({
         checks: state.checks, quiz_checks: state.quizChecks, answers: state.answers,
+        day_completions: state.dayCompletions || {},
         updated_at: new Date().toISOString()
       })
     });
@@ -2522,6 +2523,18 @@ function renderSchedule(){
   if(d.final){
     html += `<div class="callout"><b>End of Day ${d.n}:</b> ${d.final}</div>`;
   }
+
+  const completedDate = (state.dayCompletions||{})[d.n];
+  html += `<div class="quiz-card" style="margin-top:16px;">
+    <div class="quiz-cat">Manager Sign-Off</div>
+    <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Confirm this day is done and pick the date it was completed.</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <input type="date" id="day-complete-date-${d.n}" value="${completedDate||''}" style="flex:1; padding:10px; border:1.5px solid var(--hair); border-radius:8px; font-size:14px;">
+      <div class="gate-check ${completedDate?'on':''}" data-daycomplete="${d.n}"></div>
+    </div>
+    ${completedDate ? `<div style="font-size:12px; color:var(--green); margin-top:8px;">Day ${d.n} marked complete on ${completedDate}</div>` : ''}
+  </div>`;
+
   html += `</div>`;
   return html;
 }
@@ -2640,6 +2653,21 @@ function renderResults(){
       <div><div class="lbl">${escapeHtml(trainee.name)}'s submitted tests</div></div>
       <button class="newset-btn" data-refreshresults="1">Refresh</button>
     </div>`;
+
+    const dayCompletions = state.dayCompletions || {};
+    const completedDayNums = Object.keys(dayCompletions).map(n=>parseInt(n)).sort((a,b)=>a-b);
+    if(completedDayNums.length){
+      html += `<div class="quiz-card" style="margin-bottom:14px;">
+        <div class="quiz-cat">Day Completions</div>`;
+      completedDayNums.forEach(n=>{
+        html += `<div style="display:flex; justify-content:space-between; font-size:14px; padding:5px 0;">
+          <span>Day ${n} completed</span>
+          <span style="color:var(--green); font-weight:600;">${dayCompletions[n]}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
     if(state.resultsLoading && state.results === null){
       html += `<div class="ticket-obj" style="padding:0 4px;">Loading submissions…</div>`;
       return html;
@@ -4247,6 +4275,7 @@ function attachHandlers(){
       state.checks = row.checks || {};
       state.quizChecks = row.quiz_checks || {};
       state.answers = row.answers || {};
+      state.dayCompletions = row.day_completions || {};
       state.tab = 'trainee-hub';
       render();
     });
@@ -4352,6 +4381,23 @@ function attachHandlers(){
       const k = el.dataset.check;
       state.checks[k] = !state.checks[k];
       saveState(); render();
+    });
+  });
+  document.querySelectorAll('[data-daycomplete]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const dayNum = el.dataset.daycomplete;
+      state.dayCompletions = state.dayCompletions || {};
+      const dateInput = document.getElementById(`day-complete-date-${dayNum}`);
+      const isOn = !!state.dayCompletions[dayNum];
+      if(isOn){
+        delete state.dayCompletions[dayNum];
+      } else {
+        if(!dateInput || !dateInput.value){ window.alert('Pick a date first.'); return; }
+        state.dayCompletions[dayNum] = dateInput.value;
+      }
+      saveState();
+      syncTraineeProgress();
+      render();
     });
   });
   document.querySelectorAll('[data-acc]').forEach(el=>{
