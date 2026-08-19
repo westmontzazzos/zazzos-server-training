@@ -1780,19 +1780,27 @@ function genWineGlassQuestion(qIndex, usedNames){
   return { id:`wg-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Wine Service', prompt:'Which of these wines is available by the glass?', options, correct };
 }
 
+const BARTENDER_SHORT_ANSWER = [
+  { prompt: "Name the 6 Classic Cocktails and their recipes.", answer: "French 75 (Lamarca Splitz 1oz, Zazzo's Gin 0.5oz); Paloma (Zazzo's Tequila 1.5oz); The Calvary Old Fashioned (Horse Soldier 2oz); Perfect Manhattan (Woodford Reserve 2oz); Colada (Zazzo's Rum 1.5oz); Aperol Spritz (LaMarca Split 1oz, Aperol 1L 1oz)" },
+  { prompt: "Name the 4 Signature Martinis and their recipes.", answer: "Sparkling Cosmo (Lamarca Splitz 1oz, Tito's 1.5oz); Espresso Martini (Kahlua 0.5oz, Sobieski Vanilla 1.5oz); Lemon Drop Martini (Sobieski Citron 2oz); Chocolate Martini (Tippy Cow 1oz, Sobieski Vanilla 2oz)" },
+  { prompt: "Name the 6 house wines.", answer: "Canyon Road Sauvignon Blanc, Canyon Road Moscato, Canyon Road Pinot Grigio, Canyon Road Cabernet Sauvignon, Canyon Road Pinot Noir, Canyon Road Chardonnay" },
+  { prompt: "Name and identify the 5 Zazzo's brand liquors.", answer: "Zazzo's Bourbon, Zazzo's Tequila, Zazzo's Rum, Zazzo's Gin, Zazzo's Vodka" },
+  { prompt: "Name the wines sold by the bottle.", answer: "Pinot Grigio (Canyon Road, Caposaldo, Santa Margherita), Chardonnay (Canyon Road, Harken), Sauvignon Blanc (Canyon Road, Whitehaven), Moscato (Canyon Road), Pinot Noir (Canyon Road, Hahn, Decoy), Blend (Unshackled), Malbec (Terrazas Altos), Cabernet Sauvignon (Canyon Road, Franciscan Estate, Josh Cellars, Decoy LTD), Chianti (Ruffino)" },
+  { prompt: "Name the wines sold by the glass.", answer: "Chianti (Ruffino), Pinot Grigio (Canyon Road, Caposaldo), Chardonnay (Canyon Road, Harken), Sauvignon Blanc (Canyon Road, Whitehaven), Moscato (Canyon Road), Pinot Noir (Canyon Road, Hahn), Blend (Unshackled), Malbec (Terrazas Altos), Cabernet Sauvignon (Franciscan Estate, Josh Cellars, Canyon Road)" },
+  { prompt: "Identify the pour count for: Short, Tall, Shot, Mixed, Double, Rocks, Neat, Martini.", answer: "Short 1.0oz, Tall 1.0oz, Shot 1.0oz, Mixed 1.5oz, Double 2.0oz, Rocks 2.0oz, Neat 2.0oz, Martini 3.75oz" },
+  { prompt: "Name at least 5 of our draft beer options.", answer: "Blue Moon, Centerline, Moretti, Labatt Blue, Shiner Raspberry Lemonade, Stella, Stone IPA, Longsnapper, Yuengling, Miller Lite, Ambigram, Buenaveza (any 5)" },
+  { prompt: "Name at least 5 of our domestic bottled beer options.", answer: "Miller Lite, Bud Light, Miller High Life, Miller 64, Coors Light, Michelob Ultra, Budweiser (any 5)" },
+  { prompt: "Name our non-alcoholic option.", answer: "Stella Artois 0.0" }
+];
+
 function buildBartenderTestSet(){
   let mc = [];
   const usedLiquorNames = new Set();
   const usedPourRows = new Set();
-  for(let i=0;i<4;i++) mc.push(genSpecialtyDrinkQuestion(i, usedLiquorNames));
-  for(let i=0;i<4;i++) mc.push(genLiquorQuestion(i, usedLiquorNames));
+  for(let i=0;i<5;i++) mc.push(genLiquorQuestion(i, usedLiquorNames));
   for(let i=0;i<3;i++) mc.push(genRecipeIngredientQuestion(i));
-  for(let i=0;i<3;i++) mc.push(genPourSizeQuestion(i, usedPourRows));
-  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('Domestic Bottled Beer', i, usedLiquorNames));
-  for(let i=0;i<2;i++) mc.push(genSingleLiquorCatQuestion('House Wine (Canyon Road, by the glass)', i, usedLiquorNames));
-  mc.push(genSingleLiquorCatQuestion('Happy Hour Family Brands', 0, usedLiquorNames));
-  mc.push(genWineGlassQuestion(0, usedLiquorNames));
-  return { mc: shuffleArr(mc) };
+  for(let i=0;i<2;i++) mc.push(genPourSizeQuestion(i, usedPourRows));
+  return { mc: shuffleArr(mc), fixed: BARTENDER_SHORT_ANSWER };
 }
 
 function buildTestSet(day){
@@ -2853,20 +2861,21 @@ function renderQuestionBank(){
   if(role==='bartender'){
     html += `<h2 style="margin-top:28px;">Day 5 Bar Test (full real pools)</h2>`;
 
-    html += `<h3>Liquor brands, by category</h3>`;
+    html += `<h3>Liquor brands, by category (random multiple choice)</h3>`;
     LIQUOR_POOL_CATS.forEach(cat=>{
       html += `<p><b>${cat}</b> (${MENU_DATA.liquor[cat].length} options)</p><p>${MENU_DATA.liquor[cat].join(', ')}</p>`;
     });
 
-    html += `<h3>Specialty Drinks — Classic Cocktails & Signature Martinis</h3>`;
-    SPECIALTY_DRINK_CATS.forEach(cat=>{
-      html += `<p><b>${cat}</b> (${MENU_DATA.liquor[cat].length} options)</p><p>${MENU_DATA.liquor[cat].join(', ')}</p>`;
-    });
-
-    html += `<h3>Real Recipes (${RECIPE_DRINKS.length} drinks)</h3><ul>`;
+    html += `<h3>Real Recipes (${RECIPE_DRINKS.length} drinks, random multiple choice)</h3><ul>`;
     RECIPE_DRINKS.forEach(drink=>{
       const ingredients = RECIPE_DATABASE.filter(r=>r.drink===drink).map(r=>`${r.maps_to_master_item} (${r.oz} oz)`);
       html += `<li><b>${drink}:</b> ${ingredients.join(', ')}</li>`;
+    });
+    html += `</ul>`;
+
+    html += `<h3>Short Answer (${BARTENDER_SHORT_ANSWER.length} fixed questions, ungraded)</h3><ul>`;
+    BARTENDER_SHORT_ANSWER.forEach(q=>{
+      html += `<li>${q.prompt} <b>(${q.answer})</b></li>`;
     });
     html += `</ul>`;
   }
@@ -3165,7 +3174,9 @@ function attachStudyHandlers(){
 let bartenderTestPhase = 'gate';
 let bartenderTraineeName = '';
 let bartenderDeck = null;
+let bartenderFixed = null;
 let bartenderMcAnswers = {};
+let bartenderFixedAnswers = {};
 let bartenderLeaveTimer = null;
 let bartenderFailReason = '';
 
@@ -3233,8 +3244,22 @@ function renderBartenderTest(){
     html += `</div>`;
   });
 
+  if(bartenderFixed && bartenderFixed.length){
+    html += `<div class="fixed-label">Short answer</div>
+    <div class="quiz-card">`;
+    bartenderFixed.forEach((q,qi)=>{
+      const key = `bf-${qi}`;
+      const ans = bartenderFixedAnswers[key] || '';
+      html += `<div class="qrow">
+        <div class="qtext"><span>${q.prompt}</span></div>
+        <textarea class="answer" placeholder="Answer…" data-bfanswer="${key}">${ans}</textarea>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
   html += `<div class="score-bar" style="margin-top:6px;">
-    <div><div class="lbl">${answered}/${bartenderDeck.length} answered</div></div>
+    <div><div class="lbl">${answered}/${bartenderDeck.length} multiple choice answered</div></div>
   </div>
   <button class="submit-btn" id="submit-bartender-test-btn">Submit Test</button>
   </div>`;
@@ -3252,7 +3277,7 @@ async function submitBartenderTestResult(status){
     mc_score: mcScore,
     mc_total: bartenderDeck.length,
     mc_answers: bartenderMcAnswers,
-    fixed_answers: {},
+    fixed_answers: bartenderFixedAnswers,
     fail_reason: status==='failed_left_page' ? bartenderFailReason : null
   };
   try{
@@ -3308,8 +3333,11 @@ function attachBartenderTestHandlers(){
   if(startBtn){
     startBtn.addEventListener('click', ()=>{
       if(!bartenderTraineeName.trim()) return;
-      bartenderDeck = buildBartenderTestSet().mc;
+      const set = buildBartenderTestSet();
+      bartenderDeck = set.mc;
+      bartenderFixed = set.fixed;
       bartenderMcAnswers = {};
+      bartenderFixedAnswers = {};
       bartenderTestPhase = 'testing';
       document.addEventListener('visibilitychange', bartenderOnVisibilityChange);
       window.addEventListener('blur', bartenderOnBlur);
@@ -3324,6 +3352,11 @@ function attachBartenderTestHandlers(){
       if(bartenderMcAnswers[qid]) return;
       bartenderMcAnswers[qid] = opt;
       render();
+    });
+  });
+  document.querySelectorAll('[data-bfanswer]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      bartenderFixedAnswers[el.dataset.bfanswer] = el.value;
     });
   });
   const submitBtn = document.getElementById('submit-bartender-test-btn');
