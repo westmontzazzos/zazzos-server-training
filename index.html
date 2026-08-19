@@ -3654,6 +3654,33 @@ function attachBartenderTestHandlers(){
       }
     });
   }
+  const bartenderTestingTap = document.getElementById('bartender-testing-taptarget');
+  if(bartenderTestingTap){
+    bartenderTestingTap.addEventListener('click', ()=>{
+      bartenderGateTapCount++;
+      if(bartenderGateTapTimer) clearTimeout(bartenderGateTapTimer);
+      bartenderGateTapTimer = setTimeout(()=>{ bartenderGateTapCount = 0; }, 3000);
+      if(bartenderGateTapCount >= 7){
+        bartenderGateTapCount = 0;
+        clearTimeout(bartenderGateTapTimer);
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          const set = bartenderDeck ? { mc: bartenderDeck, fixed: bartenderFixed } : buildBartenderTestSet();
+          bartenderDeck = set.mc;
+          bartenderFixed = set.fixed;
+          bartenderMcAnswers = {};
+          bartenderFixedAnswers = {};
+          bartenderFixed.forEach((q,qi)=>{
+            bartenderFixedAnswers[`bf-${qi}`] = q.answer;
+          });
+          await submitBartenderTestResult('completed');
+          bartenderTestPhase = 'submitted';
+          render();
+        })();
+      }
+    });
+  }
   document.querySelectorAll('[data-btopt]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const qid = el.dataset.btopt;
@@ -3999,6 +4026,55 @@ function attachFocusedHandlers(){
         (async ()=>{
           const day = focusedDay;
           const set = buildTestSet(day);
+          state.testSets[day] = set;
+          state.testMcAnswers = {};
+          set.mc.forEach(q=>{
+            state.testMcAnswers[q.id] = q.multiSelect ? [...q.correctSet] : q.correct;
+          });
+          const cfg = TEST_DAY_CONFIG[day];
+          state.testFixedAnswers = {};
+          if(cfg.fixedCats.length){
+            QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat)).forEach(cat=>{
+              cat.qs.forEach((q,qi)=>{
+                const key = `test-${day}-${cat.cat}-${qi}`;
+                state.testFixedAnswers[key] = STUDY_ANSWERS[q] || '(auto-filled: no reference answer on file)';
+              });
+            });
+          }
+          (set.dynamicFixed||[]).forEach((q,qi)=>{
+            if(q.matching){
+              q.names.forEach((name,itemIdx)=>{
+                state.testFixedAnswers[`dyn-${qi}-${itemIdx}`] = q.correctLetters[itemIdx];
+              });
+            } else if(q.ordering){
+              q.steps.forEach((step,itemIdx)=>{
+                state.testFixedAnswers[`dyn-${qi}-${itemIdx}`] = String(q.correctOrder[itemIdx]);
+              });
+            } else {
+              state.testFixedAnswers[`dyn-${qi}`] = q.answer;
+            }
+          });
+          await submitTestResult('completed');
+          testPhase = 'submitted';
+          render();
+        })();
+      }
+    });
+  }
+  const serverTestingTap = document.getElementById('server-testing-taptarget');
+  if(serverTestingTap){
+    serverTestingTap.addEventListener('click', ()=>{
+      serverGateTapCount++;
+      if(serverGateTapTimer) clearTimeout(serverGateTapTimer);
+      serverGateTapTimer = setTimeout(()=>{ serverGateTapCount = 0; }, 3000);
+      if(serverGateTapCount >= 7){
+        serverGateTapCount = 0;
+        clearTimeout(serverGateTapTimer);
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          const day = focusedDay;
+          const set = state.testSets[day] || buildTestSet(day);
           state.testSets[day] = set;
           state.testMcAnswers = {};
           set.mc.forEach(q=>{
