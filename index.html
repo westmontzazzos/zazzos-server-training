@@ -2325,6 +2325,10 @@ function renderHome(){
 let calOpen = false;
 let secretTapCount = 0;
 let secretTapTimer = null;
+let serverGateTapCount = 0;
+let serverGateTapTimer = null;
+let bartenderGateTapCount = 0;
+let bartenderGateTapTimer = null;
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth();
 
@@ -3463,7 +3467,8 @@ let bartenderFailReason = '';
 
 function renderBartenderTest(){
   if(bartenderTestPhase === 'gate'){
-    return `<div class="focused-wrap">
+    return `<div class="focused-wrap" style="position:relative;">
+      <div id="bartender-gate-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
       <div class="focused-head">
         <h1>Zazzo's</h1>
         <div class="sub">Bartender — Day 5 Test</div>
@@ -3627,6 +3632,34 @@ function attachBartenderTestHandlers(){
       render();
     });
   }
+  const bartenderGateTap = document.getElementById('bartender-gate-taptarget');
+  if(bartenderGateTap){
+    bartenderGateTap.addEventListener('click', ()=>{
+      bartenderGateTapCount++;
+      if(bartenderGateTapTimer) clearTimeout(bartenderGateTapTimer);
+      bartenderGateTapTimer = setTimeout(()=>{ bartenderGateTapCount = 0; }, 3000);
+      if(bartenderGateTapCount >= 7){
+        bartenderGateTapCount = 0;
+        clearTimeout(bartenderGateTapTimer);
+        if(!bartenderTraineeName.trim()){ window.alert('Enter a name first.'); return; }
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '4321'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          const set = buildBartenderTestSet();
+          bartenderDeck = set.mc;
+          bartenderFixed = set.fixed;
+          bartenderMcAnswers = {};
+          bartenderFixedAnswers = {};
+          bartenderFixed.forEach((q,qi)=>{
+            bartenderFixedAnswers[`bf-${qi}`] = q.answer;
+          });
+          await submitBartenderTestResult('completed');
+          bartenderTestPhase = 'submitted';
+          render();
+        })();
+      }
+    });
+  }
   document.querySelectorAll('[data-btopt]').forEach(el=>{
     el.addEventListener('click', ()=>{
       const qid = el.dataset.btopt;
@@ -3661,7 +3694,8 @@ function renderFocusedTest(){
   const day = focusedDay;
 
   if(testPhase === 'gate'){
-    return `<div class="focused-wrap">
+    return `<div class="focused-wrap" style="position:relative;">
+      <div id="server-gate-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
       <div class="focused-head">
         <h1>Zazzo's</h1>
         <div class="sub">Day ${day} Test</div>
@@ -3953,6 +3987,56 @@ function attachFocusedHandlers(){
       window.addEventListener('blur', onWindowBlur);
       window.addEventListener('focus', onWindowFocus);
       render();
+    });
+  }
+  const serverGateTap = document.getElementById('server-gate-taptarget');
+  if(serverGateTap){
+    serverGateTap.addEventListener('click', ()=>{
+      serverGateTapCount++;
+      if(serverGateTapTimer) clearTimeout(serverGateTapTimer);
+      serverGateTapTimer = setTimeout(()=>{ serverGateTapCount = 0; }, 3000);
+      if(serverGateTapCount >= 7){
+        serverGateTapCount = 0;
+        clearTimeout(serverGateTapTimer);
+        if(!traineeName.trim()){ window.alert('Enter a name first.'); return; }
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '4321'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          const day = focusedDay;
+          const set = buildTestSet(day);
+          state.testSets[day] = set;
+          state.testMcAnswers = {};
+          set.mc.forEach(q=>{
+            state.testMcAnswers[q.id] = q.multiSelect ? [...q.correctSet] : q.correct;
+          });
+          const cfg = TEST_DAY_CONFIG[day];
+          state.testFixedAnswers = {};
+          if(cfg.fixedCats.length){
+            QUIZ.filter(q=>q.day===day && cfg.fixedCats.includes(q.cat)).forEach(cat=>{
+              cat.qs.forEach((q,qi)=>{
+                const key = `test-${day}-${cat.cat}-${qi}`;
+                state.testFixedAnswers[key] = STUDY_ANSWERS[q] || '(auto-filled: no reference answer on file)';
+              });
+            });
+          }
+          (set.dynamicFixed||[]).forEach((q,qi)=>{
+            if(q.matching){
+              q.names.forEach((name,itemIdx)=>{
+                state.testFixedAnswers[`dyn-${qi}-${itemIdx}`] = q.correctLetters[itemIdx];
+              });
+            } else if(q.ordering){
+              q.steps.forEach((step,itemIdx)=>{
+                state.testFixedAnswers[`dyn-${qi}-${itemIdx}`] = String(q.correctOrder[itemIdx]);
+              });
+            } else {
+              state.testFixedAnswers[`dyn-${qi}`] = q.answer;
+            }
+          });
+          await submitTestResult('completed');
+          testPhase = 'submitted';
+          render();
+        })();
+      }
     });
   }
   document.querySelectorAll('[data-mcanswer]').forEach(el=>{
