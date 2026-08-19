@@ -1181,7 +1181,9 @@ const DAYS = [
       "Stock everything before dinner"
     ]},
     { h:"On-Floor Evaluation", hrs:"2–4 hrs", items:[
-      "Assigned to mini section (1–3 tables max)",
+      "Assigned to a mini section behind the bar (1–3 tables max), under the bartender's supervision",
+      "Ring in the drinks for your tables",
+      "Make the drinks for your tables yourself",
       "Trainer shadows but does not intervene unless needed",
       "Greeting guests",
       "Menu knowledge & suggestive selling",
@@ -1236,8 +1238,53 @@ const DAY5_BARTENDER = {
 };
 
 function getDaysForRole(){
-  return state.role==='bartender' ? [...DAYS, DAY5_BARTENDER] : DAYS;
+  if(state.role==='bartender') return [...DAYS, DAY5_BARTENDER];
+  if(state.role==='server'){
+    const days = [...DAYS, DAY5_SERVER];
+    if(state.checks['needsBothShifts']) days.push(DAY6_SERVER);
+    return days;
+  }
+  return DAYS;
 }
+
+// Day 5/6 exist for Server only — bar open/close shadow.
+// Rough outline for now — more specific checklist items coming later.
+const DAY5_SERVER = {
+  n:5, title:"Bar Shift Shadow — Open or Close", tag:"Server only",
+  objective:"You'll shadow one full bar shift — whichever your trainer assigns, opening or closing. If you end up needing both, that's Day 6.",
+  sections:[
+    { h:"If Opening", hrs:"1 shift", items:[
+      "Come in with the opening bartender",
+      "Go through the opening routine with the bartender"
+    ]},
+    { h:"If Closing", hrs:"1 shift", items:[
+      "Come in when the closing bartender arrives",
+      "Learn the closing bartender's arrival routine",
+      "Go through the closing/checkpoint routine with the bartender"
+    ]}
+  ],
+  testPrep:null,
+  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now.",
+  final:"Once this shift is shadowed: if only one was needed, training is complete. If both open and close are needed, continue to Day 6."
+};
+const DAY6_SERVER = {
+  n:6, title:"Bar Shift Shadow — The Other One", tag:"Server only · only if both needed",
+  objective:"Only for trainees who need both routines. This covers whichever one — open or close — wasn't done on Day 5.",
+  sections:[
+    { h:"If Opening (and Day 5 was Closing)", hrs:"1 shift", items:[
+      "Come in with the opening bartender",
+      "Go through the opening routine with the bartender"
+    ]},
+    { h:"If Closing (and Day 5 was Opening)", hrs:"1 shift", items:[
+      "Come in when the closing bartender arrives",
+      "Learn the closing bartender's arrival routine",
+      "Go through the closing/checkpoint routine with the bartender"
+    ]}
+  ],
+  testPrep:null,
+  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now.",
+  final:"Both bar shifts shadowed — training complete."
+};
 
 const GUIDES = [
 { id:'g1', title:"How to Enter an Order", meta:"POS · Core Flow", body:`
@@ -1795,7 +1842,7 @@ function totalTaskCount(){
   let n=0; getDaysForRole().forEach(d=>d.sections.forEach(s=>n+=s.items.length)); return n;
 }
 function doneTaskCount(){
-  return Object.values(state.checks).filter(Boolean).length;
+  return Object.entries(state.checks).filter(([k,v])=>v && /^d\d+-/.test(k)).length;
 }
 function dayDone(dayN){
   const d = getDaysForRole().find(x=>x.n===dayN);
@@ -2199,7 +2246,7 @@ function renderSchedule(){
   const d = days.find(x=>x.n===state.day) || days[0];
   const introText = state.role==='bartender'
     ? "Five days, one section at a time. Days 1–4 mirror Server training since bartenders serve food too — Day 5 is bar-specific."
-    : "Four days, one section at a time. Tap a day below to see what it covers — check things off as you go, and don't worry about doing it perfectly on the first pass.";
+    : `${days.length===6 ? 'Six' : 'Five'} days, one section at a time. Days 1–4 are the core training — Day 5${days.length===6?'/6':''} covers shadowing a bar shift. Tap a day below to see what it covers — check things off as you go.`;
   let html = `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">${introText}</p>`;
   html += `<div class="dayrow">`;
   days.forEach(dd=>{
@@ -2578,6 +2625,12 @@ function renderTraineeHub(){
       </div>
     </button>`;
   return `<div class="home-tiles">${tiles}</div>
+  ${state.role==='server' ? `<div class="quiz-card" style="margin-top:16px;">
+    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+      <div class="qcheck ${state.checks['needsBothShifts']?'on':''}" data-check="needsBothShifts" style="flex-shrink:0;"></div>
+      <span style="font-size:14px;">Needs both Open <b>and</b> Close bar shifts (adds Day 6)</span>
+    </label>
+  </div>` : ''}
   <button class="newset-btn" id="mark-complete-btn" style="margin-top:18px; width:100%;">Mark Training Complete</button>`;
 }
 
