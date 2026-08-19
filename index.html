@@ -2654,61 +2654,62 @@ function renderResults(){
       <div style="font-size:13px; color:var(--muted); margin-top:6px;">${done}/${total} onboarding tasks · ${pct}%</div>
     </div>`;
     html += `<div class="score-bar" style="margin-bottom:14px;">
-      <div><div class="lbl">${escapeHtml(trainee.name)}'s submitted tests</div></div>
+      <div><div class="lbl">${escapeHtml(trainee.name)}'s activity log</div></div>
       <button class="newset-btn" data-refreshresults="1">Refresh</button>
     </div>`;
-
-    const dayCompletions = state.dayCompletions || {};
-    const completedDayNums = Object.keys(dayCompletions).map(n=>parseInt(n)).sort((a,b)=>a-b);
-    if(completedDayNums.length){
-      html += `<div class="quiz-card" style="margin-bottom:14px;">
-        <div class="quiz-cat">Day Completions</div>`;
-      completedDayNums.forEach(n=>{
-        html += `<div style="display:flex; justify-content:space-between; font-size:14px; padding:5px 0;">
-          <span>Day ${n} completed</span>
-          <span style="color:var(--green); font-weight:600;">${dayCompletions[n]}</span>
-        </div>`;
-      });
-      html += `</div>`;
-    }
 
     if(state.resultsLoading && state.results === null){
       html += `<div class="ticket-obj" style="padding:0 4px;">Loading submissions…</div>`;
       return html;
     }
+
+    // Build one unified list of events: day checklist completions + test submissions, sorted by actual date/time
+    const events = [];
+    const dayCompletions = state.dayCompletions || {};
+    Object.keys(dayCompletions).forEach(n=>{
+      const dateStr = dayCompletions[n];
+      events.push({
+        type: 'day',
+        timestamp: new Date(dateStr + 'T12:00:00').getTime(),
+        label: `Day ${n} Checklist`,
+        dateStr: dateStr
+      });
+    });
     const mine = (state.results||[]).filter(r=>r.trainee_name.trim().toLowerCase() === trainee.name.trim().toLowerCase());
-    if(mine.length===0){
-      html += `<div class="callout">No submitted tests yet for ${escapeHtml(trainee.name)}. Matched by name typed on the test — if they typed it differently, it won't show up here.</div>`;
+    mine.forEach(r=>{
+      const label = (r.role === 'bartender') ? 'Day 5 Test' : `Day ${r.day} Test`;
+      events.push({
+        type: 'test',
+        timestamp: new Date(r.created_at).getTime(),
+        label,
+        dateStr: new Date(r.created_at).toLocaleString(),
+        row: r
+      });
+    });
+
+    if(events.length===0){
+      html += `<div class="callout">Nothing logged yet for ${escapeHtml(trainee.name)} — no completed days and no submitted tests.</div>`;
       return html;
     }
-    const byTest = {};
-    mine.forEach(r=>{
-      const key = (r.role === 'bartender') ? 'Bartender · Day 5 Test' : `Day ${r.day}`;
-      if(!byTest[key]) byTest[key] = { total:0, failed:0 };
-      byTest[key].total++;
-      if(r.status === 'failed_left_page') byTest[key].failed++;
-    });
-    const summaryRows = Object.keys(byTest).map(key=>{
-      const s = byTest[key];
-      return `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;">
-        <span>${key}</span>
-        <span style="color:${s.failed>0?'#C0392B':'var(--muted)'};">${s.total} attempt${s.total===1?'':'s'}${s.failed>0 ? ` · ${s.failed} left the page` : ''}</span>
-      </div>`;
-    }).join('');
-    html += `<div class="quiz-card" style="margin-bottom:14px;">
-      <div class="quiz-cat">Attempt Summary</div>
-      ${summaryRows}
-    </div>`;
-    mine.forEach(r=>{
-      const failed = r.status === 'failed_left_page';
-      const when = new Date(r.created_at).toLocaleString();
-      const label = (r.role === 'bartender') ? 'Bartender · Day 5 Test' : `Day ${r.day}`;
-      html += `<div class="quiz-card">
-        <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-        ${r.role === 'bartender' ? renderBartenderAnswers(r.fixed_answers) : (r.mc_total > 0 ? `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>` : '') + renderServerFixedAnswers(r.fixed_answers)}
-        ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
-      </div>`;
+
+    events.sort((a,b)=>b.timestamp - a.timestamp);
+
+    events.forEach(ev=>{
+      if(ev.type==='day'){
+        html += `<div class="quiz-card">
+          <div class="quiz-cat" style="color:#1B6B3A;">${ev.label} · Completed</div>
+          <div style="font-size:13px; color:var(--muted);">${ev.dateStr}</div>
+        </div>`;
+      } else {
+        const r = ev.row;
+        const failed = r.status === 'failed_left_page';
+        html += `<div class="quiz-card">
+          <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${ev.label} · ${failed?'Failed — left page':'Completed'}</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${ev.dateStr}</div>
+          ${r.role === 'bartender' ? renderBartenderAnswers(r.fixed_answers) : (r.mc_total > 0 ? `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>` : '') + renderServerFixedAnswers(r.fixed_answers)}
+          ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
+        </div>`;
+      }
     });
     return html;
   }
