@@ -1450,6 +1450,16 @@ const PROGRAMS = [
 `}
 ];
 
+function buildMatchingQuestion(items){
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const order = shuffleArr(items.map((_,idx)=>idx));
+  const namesList = items.map((i,idx)=>`${idx+1}. ${i.name}`).join('\n');
+  const descsList = order.map((origIdx,pos)=>`${letters[pos]}. ${items[origIdx].desc}`).join('\n');
+  const prompt = `Match each item to its description. Write the matching letter next to each number.\n\n${namesList}\n\n${descsList}`;
+  const answer = items.map((i,idx)=>`${idx+1}=${letters[order.indexOf(idx)]}`).join(', ');
+  return { prompt, answer };
+}
+
 const QUIZ = [
 { day:2, cat:"Pizzas", qs:[
   "What sizes does the thin crust come in and how many people does each pizza feed?",
@@ -1579,14 +1589,18 @@ function genSpecialtyPizzaQuestion(qIndex){
   const options = shuffleArr([item.desc, ...decoys]);
   return { id:`sp-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Specialty Pizzas', prompt:`What comes on the ${item.name}?`, options, correct:item.desc };
 }
-function genPizzaToppingQuestion(qIndex){
-  const real = REAL_PIZZA_TOPPINGS[Math.floor(Math.random()*REAL_PIZZA_TOPPINGS.length)];
+function genPizzaToppingQuestion(qIndex, usedNames){
+  usedNames = usedNames || new Set();
+  const available = REAL_PIZZA_TOPPINGS.filter(t=>!usedNames.has(t));
+  const pool = available.length ? available : REAL_PIZZA_TOPPINGS;
+  const real = pool[Math.floor(Math.random()*pool.length)];
+  usedNames.add(real);
   const decoys = pickRandomN(FAKE_TOPPINGS_NOT_OFFERED,3);
   const options = shuffleArr([real, ...decoys]);
   return { id:`pt-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Pizza Toppings', prompt:`If a guest is building their own pizza, which of these is a real topping option?`, options, correct:real };
 }
 
-const CRUST_TYPES = ["Thin Crust","Deep Dish","Sicilian","Stuffed","Double Dough"];
+const CRUST_TYPES = ["Thin Crust","Deep Dish","Sicilian","Stuffed","Double Dough","Gluten Free","Cauliflower"];
 const FIXED_MC_BANK = {
   Soup: [
     { prompt: "What size options do we offer for soup?", correct: "Cup or Bowl", decoys: ["Small or Large only", "12 oz. cup only, no bowl", "Bowl only — no cup size"] }
@@ -1633,10 +1647,9 @@ function genFixedMCQuestion(cat, qIndex){
 }
 
 const TEST_DAY_CONFIG = {
-  2: { mc:[{label:'Specialty Pizzas', source:'specialtypizza', cat:'Pizzas', n:3}, {label:'Appetizers', source:'dinein', cat:'Appetizers', n:3},
-           {label:'Pizza Crust', source:'fixedmc', cat:'Pizza Crust', n:2}, {label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:1},
-           {label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:2}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:2},
-           {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:1}],
+  2: { mc:[{label:'Pizza Toppings', source:'pizzatopping', cat:'Pizzas', n:3},
+           {label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
+           {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
        fixedCats:['Specials','Loyalty Program'] },
   3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:6}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:7},
            {label:'Burgers', source:'dinein', cat:'Burgers', n:4}, {label:'Wraps', source:'dinein', cat:'Wraps', n:3}],
@@ -1797,6 +1810,13 @@ function buildBartenderTestSet(){
   return { mc: [], fixed: BARTENDER_SHORT_ANSWER };
 }
 
+const DYNAMIC_FIXED = {
+  2: [
+    { cat: 'Specialty Pizzas', gen: () => buildMatchingQuestion(SPECIALTY_PIZZAS) },
+    { cat: 'Appetizers', gen: () => buildMatchingQuestion(MENU_DATA.dinein.Appetizers) },
+    { cat: 'Pizza Crust', gen: () => ({ prompt: 'Name all the types of pizza crusts we have.', answer: CRUST_TYPES.join(', ') }) }
+  ]
+};
 function buildTestSet(day){
   const cfg = TEST_DAY_CONFIG[day];
   let mc = [];
@@ -1808,11 +1828,12 @@ function buildTestSet(day){
       else if(group.source==='singleliquorcat') mc.push(genSingleLiquorCatQuestion(group.cat, i, usedLiquorNames));
       else if(group.source==='fixedmc') mc.push(genFixedMCQuestion(group.cat, i));
       else if(group.source==='specialtypizza') mc.push(genSpecialtyPizzaQuestion(i));
-      else if(group.source==='pizzatopping') mc.push(genPizzaToppingQuestion(i));
+      else if(group.source==='pizzatopping') mc.push(genPizzaToppingQuestion(i, usedDineinNames));
       else mc.push(genDineinQuestion(group.cat, i, usedDineinNames));
     }
   });
-  return { mc };
+  const dynamicFixed = (DYNAMIC_FIXED[day] || []).map(d => Object.assign({ cat: d.cat }, d.gen()));
+  return { mc, dynamicFixed };
 }
 
 // ---------------- STUDY GUIDE (interactive, self-directed practice) ----------------
@@ -2484,7 +2505,7 @@ function renderResults(){
       html += `<div class="quiz-card">
         <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-        ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>`}
+        ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>${renderServerFixedAnswers(r.fixed_answers)}`}
         ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
       </div>`;
     });
@@ -2542,7 +2563,7 @@ function renderResults(){
       <div class="quiz-cat" style="color:${failed?'#C0392B':'#1B6B3A'};">${label} · ${failed?'Failed — left page':'Completed'}</div>
       <div class="mcq-prompt" style="margin-bottom:4px;">${escapeHtml(r.trainee_name)}</div>
       <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">${when}</div>
-      ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>`}
+      ${(r.role === 'bartender' && r.mc_total === 0) ? renderBartenderAnswers(r.fixed_answers) : `<div style="font-size:14px;"><b>${r.mc_score}/${r.mc_total}</b> correct on multiple choice</div>${renderServerFixedAnswers(r.fixed_answers)}`}
       ${failed ? `<div class="callout" style="margin-top:10px;">${escapeHtml(r.fail_reason||'')}</div>` : ''}
     </div>`;
   });
@@ -2559,6 +2580,25 @@ function renderBartenderAnswers(fixedAnswers){
       <div style="font-weight:700;">${escapeHtml(q.prompt)}</div>
       <div style="color:var(--muted); white-space:pre-wrap;">${escapeHtml(ans || '(left blank)')}</div>
     </div>`;
+  });
+  return html;
+}
+function renderServerFixedAnswers(fixedAnswers){
+  if(!fixedAnswers || !Object.keys(fixedAnswers).length) return '';
+  let html = '';
+  Object.keys(fixedAnswers).forEach(key=>{
+    const val = fixedAnswers[key];
+    if(key.startsWith('dyn-')){
+      html += `<div style="margin-top:8px; font-size:13px;">
+        <div style="font-weight:700;">${escapeHtml(val.cat)}: ${escapeHtml(val.prompt).replace(/\n/g,'<br>')}</div>
+        <div style="color:var(--muted); white-space:pre-wrap;">${escapeHtml(val.response || '(left blank)')}</div>
+        <div style="color:#1B6B3A; font-size:12px;">Reference: ${escapeHtml(val.reference_answer)}</div>
+      </div>`;
+    } else {
+      html += `<div style="margin-top:8px; font-size:13px;">
+        <div style="color:var(--muted); white-space:pre-wrap;">${escapeHtml(val || '(left blank)')}</div>
+      </div>`;
+    }
   });
   return html;
 }
@@ -3473,6 +3513,21 @@ function renderFocusedTest(){
     });
   }
 
+  if(set.dynamicFixed && set.dynamicFixed.length){
+    if(!cfg.fixedCats.length) html += `<div class="fixed-label">Short answer</div>`;
+    set.dynamicFixed.forEach((q,qi)=>{
+      const key = `dyn-${qi}`;
+      const ans = state.testFixedAnswers[key] || '';
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${q.cat}</div>
+        <div class="qrow">
+          <div class="qtext"><span style="white-space:pre-wrap;">${escapeHtml(q.prompt)}</span></div>
+          <textarea class="answer" placeholder="Answer…" data-tfanswer="${key}">${ans}</textarea>
+        </div>
+      </div>`;
+    });
+  }
+
   html += `<div class="score-bar" style="margin-top:6px;">
     <div><div class="lbl">${answered}/${set.mc.length} multiple choice answered</div></div>
   </div>
@@ -3490,6 +3545,15 @@ async function submitTestResult(status, failReason){
   const fixedAnswersForDay = {};
   Object.keys(state.testFixedAnswers).forEach(k=>{
     if(k.startsWith(`test-${day}-`)) fixedAnswersForDay[k] = state.testFixedAnswers[k];
+  });
+  (set.dynamicFixed||[]).forEach((q,qi)=>{
+    const key = `dyn-${qi}`;
+    fixedAnswersForDay[key] = {
+      cat: q.cat,
+      prompt: q.prompt,
+      reference_answer: q.answer,
+      response: state.testFixedAnswers[key] || ''
+    };
   });
   const payload = {
     trainee_name: traineeName.trim(),
