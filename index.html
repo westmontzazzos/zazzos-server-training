@@ -2748,7 +2748,10 @@ function renderQuestionBank(){
   html += `<h3>Day 2 — Specials, Loyalty Program (short answer, ungraded but part of the Test)</h3>`;
   QUIZ.filter(q=>q.day===2 && ['Specials','Loyalty Program'].includes(q.cat)).forEach(entry=>{
     html += `<p><b>${entry.cat}</b></p><ul>`;
-    entry.qs.forEach(q=>{ html += `<li>${q}</li>`; });
+    entry.qs.forEach(q=>{
+      const ans = STUDY_ANSWERS[q];
+      html += `<li>${q}${ans ? ` <b>(${ans})</b>` : ''}</li>`;
+    });
     html += `</ul>`;
   });
 
@@ -2770,10 +2773,19 @@ function renderQuestionBank(){
   FIXED_MC_BANK.Soup.forEach(q=>{ html += `<li>${q.prompt} <b>(${q.correct})</b></li>`; });
   html += `</ul>`;
 
-  html += `<h3>Day 4 — Liquor, Coupons & VIP (short answer, ungraded but part of the Test)</h3>`;
-  QUIZ.filter(q=>q.day===4 && ['Liquor','Coupons & VIP'].includes(q.cat)).forEach(entry=>{
-    html += `<p><b>${entry.cat}</b></p><ul>`;
-    entry.qs.forEach(q=>{ html += `<li>${q}</li>`; });
+  html += `<h3>Day 4 — Draft Beer pool (${MENU_DATA.liquor['Draft Beer'].length} real beers)</h3><p>${MENU_DATA.liquor['Draft Beer'].join(', ')}</p>`;
+
+  html += `<h3>Day 4 — Coupons & VIP (fixed questions)</h3><ul>`;
+  FIXED_MC_BANK['Coupons & VIP'].forEach(q=>{ html += `<li>${q.prompt} <b>(${q.correct})</b></li>`; });
+  html += `</ul>`;
+
+  html += `<h3>Day 4 — Liquor (short answer, ungraded but part of the Test)</h3>`;
+  QUIZ.filter(q=>q.day===4 && q.cat==='Liquor').forEach(entry=>{
+    html += `<ul>`;
+    entry.qs.forEach(q=>{
+      const ans = STUDY_ANSWERS[q];
+      html += `<li>${q}${ans ? ` <b>(${ans})</b>` : ''}</li>`;
+    });
     html += `</ul>`;
   });
 
