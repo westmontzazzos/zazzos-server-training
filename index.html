@@ -2171,6 +2171,7 @@ function render(){
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS, "Zazzo's runs three ongoing perks programs — VIP, Text Club, and Pizza Club. Guests will ask about all three, so here's how each one works and how to redeem it.");
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
+  if(state.tab==='preview-test') html += renderPreviewTest();
   if(state.tab==='results') html += renderResults();
   if(state.tab==='testing') html += renderTestingPicker();
   if(state.tab==='print') html += renderPrintPicker();
@@ -2454,7 +2455,7 @@ const PARENT_TAB = {
   testing:'trainee-hub', results:'trainee-hub', 'bar-guide':'trainee-hub',
   'print-packet':'print', 'print-test':'print',
   quiz:'testing', links:'testing', 'bar-links':'testing',
-  'question-bank':'trainee-hub'
+  'question-bank':'trainee-hub', 'preview-test':'links'
 };
 
 function tabBtn(id,label){
@@ -2911,7 +2912,6 @@ function renderTraineeHub(){
 function renderLinkRow(url){
   return `<div class="link-box">${url}</div>
   <div class="link-actions" style="margin-bottom:16px;">
-    <a href="${url}" target="_blank" rel="noopener" class="link-preview-btn">Preview</a>
     <button type="button" class="link-copy-btn" data-copylink="${url}">Copy</button>
   </div>`;
 }
@@ -2919,35 +2919,39 @@ function renderLinkRow(url){
 function renderBarLinks(){
   const base = `${window.location.origin}${window.location.pathname}`;
   const testUrl = `${base}?btest=1`;
-  const studyUrl = `${base}?study=1&role=bartender`;
-  return `<div class="callout" style="margin-top:0;">Preview shows exactly what they'll see. Copy grabs the link to paste into a text.</div>
-  <div class="quiz-card">
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — no lockdown, nothing submits. Copy grabs the real link to send to a trainee.</div>`;
+  html += `<div class="quiz-card">
     <div class="quiz-cat">Day 5 Test — graded, tracked</div>
+    <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
+    <button type="button" class="link-preview-btn" data-previewbar="1" style="width:100%; margin-bottom:14px;">Preview in App</button>
+    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
     ${renderLinkRow(testUrl)}
-  </div>
-  <div class="quiz-card">
-    <div class="quiz-cat">Study Guide — ungraded, optional</div>
-    ${renderLinkRow(studyUrl)}
   </div>`;
+  [2,3,4].forEach(day=>{
+    const testUrlDay = `${base}?day=${day}`;
+    html += `<div class="quiz-card">
+      <div class="quiz-cat">Day ${day}</div>
+      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
+      <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
+      <button type="button" class="link-preview-btn" data-previewday="${day}" style="width:100%; margin-bottom:14px;">Preview in App</button>
+      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
+      ${renderLinkRow(testUrlDay)}
+    </div>`;
+  });
+  return html;
 }
 
 function renderLinks(){
   const base = `${window.location.origin}${window.location.pathname}`;
-  const studyUrl = `${base}?study=1`;
-  let html = `<div class="callout" style="margin-top:0;">
-    Preview (in this app) lets you look at the actual questions without leaving or dealing with the lockdown. Copy grabs the real link to send to a trainee.
-  </div>`;
-  html += `<div class="quiz-card">
-    <div class="quiz-cat">Study Guide — any day</div>
-    <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">Lets the trainee pick what to practice instead of a fixed list.</div>
-    ${renderLinkRow(studyUrl)}
-  </div>`;
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — no lockdown, nothing submits. Copy grabs the real link to send to a trainee.</div>`;
   [2,3,4].forEach(day=>{
     const testUrl = `${base}?day=${day}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
       <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
-      <button type="button" class="link-preview-btn" data-previewday="${day}" style="width:100%; margin-bottom:10px;">Preview in App</button>
+      <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
+      <button type="button" class="link-preview-btn" data-previewday="${day}" style="width:100%; margin-bottom:14px;">Preview in App</button>
+      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
       ${renderLinkRow(testUrl)}
     </div>`;
   });
@@ -2955,6 +2959,18 @@ function renderLinks(){
 }
 
 function renderPreviewTest(){
+  if(state.previewBar){
+    const set = buildBartenderTestSet();
+    let html = `<div class="callout" style="margin-top:0;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
+    (set.fixed||[]).forEach(q=>{
+      html += `<div class="quiz-card"><div class="quiz-cat">Short Answer</div>
+        <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
+        <div style="color:#1B6B3A; margin-top:8px; font-size:13px;">Answer: ${q.answer}</div>
+      </div>`;
+    });
+    return html;
+  }
+
   const day = state.previewDay;
   const set = buildTestSet(day);
   const cfg = TEST_DAY_CONFIG[day];
@@ -2964,10 +2980,17 @@ function renderPreviewTest(){
     html += `<div class="mcq">
       <div class="mcq-cat">${q.cat}</div>
       <div class="mcq-prompt">${q.prompt}</div>`;
-    q.options.forEach(opt=>{
-      const cls = opt===q.correct ? 'mcopt correct' : 'mcopt';
-      html += `<div class="${cls}">${opt}${opt===q.correct ? ' ✓' : ''}</div>`;
-    });
+    if(q.multiSelect){
+      q.options.forEach(opt=>{
+        const cls = q.correctSet.includes(opt) ? 'mcopt correct' : 'mcopt';
+        html += `<div class="${cls}">${opt}${q.correctSet.includes(opt) ? ' ✓' : ''}</div>`;
+      });
+    } else {
+      q.options.forEach(opt=>{
+        const cls = opt===q.correct ? 'mcopt correct' : 'mcopt';
+        html += `<div class="${cls}">${opt}${opt===q.correct ? ' ✓' : ''}</div>`;
+      });
+    }
     html += `</div>`;
   });
 
@@ -2984,11 +3007,19 @@ function renderPreviewTest(){
     if(q.matching){
       html += `<div class="quiz-card">
         <div class="quiz-cat">${q.cat}</div>
-        <div class="qtext" style="margin-bottom:10px;">Match each item to its description.</div>`;
+        <div class="qtext" style="margin-bottom:10px;">Match each item to its description.</div>
+        ${q.instructions ? `<div class="qtext" style="margin-bottom:10px; font-style:italic; color:var(--muted);">${q.instructions}</div>` : ''}`;
       q.names.forEach((name,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${name} — <b>${q.correctLetters[i]}</b></div>`; });
       html += `<div style="background:var(--bg); border-radius:10px; padding:12px 14px; margin-top:10px; font-size:13px; line-height:1.6;">`;
       q.descs.forEach((desc,pos)=>{ html += `<b>${q.letters[pos]}.</b> ${desc}<br>`; });
       html += `</div></div>`;
+    } else if(q.ordering){
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${q.cat}</div>
+        <div class="qtext" style="margin-bottom:10px;">Correct order:</div>`;
+      const orderedSteps = q.steps.map((s,i)=>({s, num:q.correctOrder[i]})).sort((a,b)=>a.num-b.num);
+      orderedSteps.forEach((item,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${item.s}</div>`; });
+      html += `</div>`;
     } else {
       html += `<div class="quiz-card"><div class="quiz-cat">${q.cat}</div>
         <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
@@ -4080,6 +4111,21 @@ function attachHandlers(){
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(url).then(done).catch(()=>{});
       }
+    });
+  });
+  document.querySelectorAll('[data-previewday]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.previewDay = parseInt(el.dataset.previewday);
+      state.previewBar = false;
+      state.tab = 'preview-test';
+      render();
+    });
+  });
+  document.querySelectorAll('[data-previewbar]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.previewBar = true;
+      state.tab = 'preview-test';
+      render();
     });
   });
   document.querySelectorAll('[data-sharepdf]').forEach(el=>{
