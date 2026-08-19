@@ -1181,9 +1181,7 @@ const DAYS = [
       "Stock everything before dinner"
     ]},
     { h:"On-Floor Evaluation", hrs:"2–4 hrs", items:[
-      "Assigned to a mini section behind the bar (1–3 tables max), under the bartender's supervision",
-      "Ring in the drinks for your tables",
-      "Make the drinks for your tables yourself",
+      "Assigned to mini section (1–3 tables max)",
       "Trainer shadows but does not intervene unless needed",
       "Greeting guests",
       "Menu knowledge & suggestive selling",
@@ -1203,9 +1201,44 @@ const DAYS = [
 ];
 
 // Day 5 exists for Bartender only — the comprehensive bar knowledge test day
+// Day 4 for Bartender is its own version — instead of a dining-room mini section,
+// bartenders get their own seats at the bar as their section: orders, food, and drinks,
+// all handled from behind the bar. Everything else mirrors Server's Day 4.
+const DAY4_BARTENDER = {
+  n:4, title:"Final Training Day — Mock Solo Shift (Behind the Bar)", tag:"1 hr + 2–4 hrs eval",
+  objective:"Your section, mostly on your own — except your section is the bar. Your trainer's watching, not helping — this is the day that shows you (and us) that you're ready.",
+  sections:[
+    { h:"Pre-Shift", hrs:"1 hr", items:[
+      "Review key points — more POS training (optional)",
+      "Be ready to answer: what are today's specials?",
+      "Be ready to answer: how do you separate tickets?",
+      "Be ready to answer: what's the difference between VIP Club, Text Club, Pizza Club, and Loyalty Program?",
+      "Prep assigned section — side work setup",
+      "Stock everything before dinner"
+    ]},
+    { h:"On-Floor Evaluation", hrs:"2–4 hrs", items:[
+      "Assigned your own seats at the bar as your section",
+      "Take and enter orders — food and drinks — for your bar seats",
+      "Make the drinks for your own seats yourself",
+      "Trainer shadows but does not intervene unless needed",
+      "Greeting guests",
+      "Menu knowledge & suggestive selling",
+      "Communicating with kitchen",
+      "Handling payment",
+      "Maintaining clean section and proper side work",
+      "Mid-shift trainer feedback",
+      "End of shift evaluation with manager & trainer",
+      "Finish final portions of test (pizza and specials portions)"
+    ]}
+  ],
+  testPrep:null,
+  note:"Complete the Server Test sections on Pastas, Soup & Salad, Desserts, and Liquor today.",
+  final:"If competent: graduate to solo shifts with light support. If not ready: additional training day(s) are scheduled with clear goals."
+};
+
 const DAY5_BARTENDER = {
   n:5, title:"Behind the Bar — Hands-On & Test Day", tag:"Bartender only",
-  objective:"Today's about doing, not just knowing. You'll physically make every drink, ring in every drink on the POS, and work a shift on each side of the bar's day — open and close — before the comprehensive test at the end.",
+  objective:"Today's about doing, not just knowing. You'll physically make every drink, ring in every drink on the POS, and shadow one full bar shift — whichever your trainer assigns, opening or closing — before the comprehensive test at the end. If you end up needing both open and close, that's Day 6.",
   sections:[
     { h:"Hands-On: Make Every Drink", hrs:"1 hr", items:[
       "Make every Classic Cocktail on the menu, one at a time",
@@ -1219,72 +1252,49 @@ const DAY5_BARTENDER = {
       "Practice a mixed drink order alongside a food order on the same ticket",
       "Trainer checks each entry for accuracy before moving to the next drink"
     ]},
-    { h:"Shadow an Opening Shift", hrs:"1 full shift", items:[
-      "Arrive with the opening bartender and shadow the entire open",
+    { h:"If Opening", hrs:"1 shift", items:[
+      "Come in with the opening bartender and shadow the entire open",
       "Learn opening side work — stocking, cutting garnishes, prepping mixers and juices",
-      "Learn the opening checklist and how the station gets set up",
-      "Observe the first guests of the day being served"
+      "Learn the opening checklist and how the station gets set up"
     ]},
-    { h:"Shadow a Closing Shift", hrs:"1 full shift", items:[
-      "Arrive with the closing bartender and shadow the entire close",
+    { h:"If Closing", hrs:"1 shift", items:[
+      "Come in when the closing bartender arrives and shadow the entire close",
       "Learn closing side work — restocking, cleaning, breaking down the station",
-      "Learn the closing checklist and end-of-night procedures",
-      "Observe how the bar gets handed off and secured for the night"
+      "Learn the closing checklist and end-of-night procedures"
     ]}
   ],
   testPrep:null,
-  note:"Once the hands-on rotation and both shadow shifts are done, they're ready for the comprehensive bar test — sent as its own link. It covers every brand, every Classic Cocktail and Signature Martini, real recipes, and real pour sizes.",
-  final:"If competent: ready for a solo shift behind the bar. If not: more practice on the Study Guide, then retest."
+  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now. Once the hands-on rotation and this shift are done: if only one routine was needed, move to the comprehensive bar test. If both open and close are needed, continue to Day 6 first.",
+  final:"If only one routine was needed: ready for the comprehensive bar test. If both are needed: continue to Day 6."
+};
+const DAY6_BARTENDER = {
+  n:6, title:"Behind the Bar — The Other Shift", tag:"Bartender only · only if both open and close are needed",
+  objective:"Only for trainees who need both routines. This covers whichever one — open or close — wasn't shadowed on Day 5.",
+  sections:[
+    { h:"If Opening (and Day 5 was Closing)", hrs:"1 shift", items:[
+      "Come in with the opening bartender and shadow the entire open",
+      "Learn opening side work — stocking, cutting garnishes, prepping mixers and juices",
+      "Learn the opening checklist and how the station gets set up"
+    ]},
+    { h:"If Closing (and Day 5 was Opening)", hrs:"1 shift", items:[
+      "Come in when the closing bartender arrives and shadow the entire close",
+      "Learn closing side work — restocking, cleaning, breaking down the station",
+      "Learn the closing checklist and end-of-night procedures"
+    ]}
+  ],
+  testPrep:null,
+  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now.",
+  final:"Both bar shifts shadowed — ready for the comprehensive bar test."
 };
 
 function getDaysForRole(){
-  if(state.role==='bartender') return [...DAYS, DAY5_BARTENDER];
-  if(state.role==='server'){
-    const days = [...DAYS, DAY5_SERVER];
-    if(state.checks['needsBothShifts']) days.push(DAY6_SERVER);
+  if(state.role==='bartender'){
+    const days = [DAYS[0], DAYS[1], DAYS[2], DAY4_BARTENDER, DAY5_BARTENDER];
+    if(state.checks['needsBothShifts']) days.push(DAY6_BARTENDER);
     return days;
   }
   return DAYS;
 }
-
-// Day 5/6 exist for Server only — bar open/close shadow.
-// Rough outline for now — more specific checklist items coming later.
-const DAY5_SERVER = {
-  n:5, title:"Bar Shift Shadow — Open or Close", tag:"Server only",
-  objective:"You'll shadow one full bar shift — whichever your trainer assigns, opening or closing. If you end up needing both, that's Day 6.",
-  sections:[
-    { h:"If Opening", hrs:"1 shift", items:[
-      "Come in with the opening bartender",
-      "Go through the opening routine with the bartender"
-    ]},
-    { h:"If Closing", hrs:"1 shift", items:[
-      "Come in when the closing bartender arrives",
-      "Learn the closing bartender's arrival routine",
-      "Go through the closing/checkpoint routine with the bartender"
-    ]}
-  ],
-  testPrep:null,
-  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now.",
-  final:"Once this shift is shadowed: if only one was needed, training is complete. If both open and close are needed, continue to Day 6."
-};
-const DAY6_SERVER = {
-  n:6, title:"Bar Shift Shadow — The Other One", tag:"Server only · only if both needed",
-  objective:"Only for trainees who need both routines. This covers whichever one — open or close — wasn't done on Day 5.",
-  sections:[
-    { h:"If Opening (and Day 5 was Closing)", hrs:"1 shift", items:[
-      "Come in with the opening bartender",
-      "Go through the opening routine with the bartender"
-    ]},
-    { h:"If Closing (and Day 5 was Opening)", hrs:"1 shift", items:[
-      "Come in when the closing bartender arrives",
-      "Learn the closing bartender's arrival routine",
-      "Go through the closing/checkpoint routine with the bartender"
-    ]}
-  ],
-  testPrep:null,
-  note:"More specific checklist items for opening and closing are coming later — this is the rough outline for now.",
-  final:"Both bar shifts shadowed — training complete."
-};
 
 const GUIDES = [
 { id:'g1', title:"How to Enter an Order", meta:"POS · Core Flow", body:`
@@ -2296,8 +2306,8 @@ function renderSchedule(){
   const days = getDaysForRole();
   const d = days.find(x=>x.n===state.day) || days[0];
   const introText = state.role==='bartender'
-    ? "Five days, one section at a time. Days 1–4 mirror Server training since bartenders serve food too — Day 5 is bar-specific."
-    : `${days.length===6 ? 'Six' : 'Five'} days, one section at a time. Days 1–4 are the core training — Day 5${days.length===6?'/6':''} covers shadowing a bar shift. Tap a day below to see what it covers — check things off as you go.`;
+    ? `${days.length===6 ? 'Six' : 'Five'} days, one section at a time. Days 1–3 mirror Server training since bartenders serve food too. Day 4 is behind the bar instead of a dining section. Day 5${days.length===6?'/6':''} is hands-on bar training and the comprehensive test.`
+    : "Four days, one section at a time. Tap a day below to see what it covers — check things off as you go, and don't worry about doing it perfectly on the first pass.";
   let html = `<p style="font-family:'Libre Baskerville',serif; font-style:italic; color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 18px;">${introText}</p>`;
   html += `<div class="dayrow">`;
   days.forEach(dd=>{
@@ -2676,7 +2686,7 @@ function renderTraineeHub(){
       </div>
     </button>`;
   return `<div class="home-tiles">${tiles}</div>
-  ${state.role==='server' ? `<div class="quiz-card" style="margin-top:16px;">
+  ${state.role==='bartender' ? `<div class="quiz-card" style="margin-top:16px;">
     <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
       <div class="qcheck ${state.checks['needsBothShifts']?'on':''}" data-check="needsBothShifts" style="flex-shrink:0;"></div>
       <span style="font-size:14px;">Needs both Open <b>and</b> Close bar shifts (adds Day 6)</span>
