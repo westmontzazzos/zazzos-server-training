@@ -1655,9 +1655,7 @@ const TEST_DAY_CONFIG = {
   2: { mc:[{label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
            {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
        fixedCats:[] },
-  3: { mc:[{label:'Dinners', source:'dinein', cat:'Dinners', n:6}, {label:'Handhelds', source:'dinein', cat:'Handhelds', n:7},
-           {label:'Burgers', source:'dinein', cat:'Burgers', n:4}, {label:'Wraps', source:'dinein', cat:'Wraps', n:3}],
-       fixedCats:[] },
+  3: { mc:[], fixedCats:[] },
   4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:5}, {label:'Desserts', source:'dinein', cat:'Desserts', n:4},
            {label:'Salads', source:'dinein', cat:'Salads', n:4}, {label:'Soup', source:'fixedmc', cat:'Soup', n:1},
            {label:'Draft Beer', source:'singleliquorcat', cat:'Draft Beer', n:1}, {label:'Coupons & VIP', source:'fixedmc', cat:'Coupons & VIP', n:3}],
@@ -1833,6 +1831,42 @@ const CRUST_SIZE_MATCHING = [
   { name: "Double Dough", desc: "12, 14, 16, or 18 inch" },
   { name: "Thin Crust", desc: "12, 14, 16, or 18 inch" }
 ];
+const DINNERS_MATCHING = [
+  { name: "Baby Back Ribs — Full Slab", desc: "Full slab ribs with house BBQ sauce; served with house salad, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Breaded Jumbo Shrimp Dinner", desc: "6 jumbo shrimp with cocktail sauce; served with house salad, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Breaded Coconut Shrimp Dinner", desc: "6 coconut shrimp with sweet chili sauce; served with house salad, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Salmon", desc: "Salmon fillet with lemon butter garlic sauce; served with house salad or soup, choice of fries, onion rings or baked potato, a roll, and mixed vegetables." },
+  { name: "1/2 Slab Rib & Broasted Chicken", desc: "2 pieces broasted chicken and a half slab of ribs; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Broasted Chicken", desc: "4 pieces pressure-cooked chicken; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Grilled Chicken with Mixed Vegetables", desc: "2 grilled chicken breasts with mixed vegetables; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Breaded Cod Dinner", desc: "3 breaded cod with tartar sauce; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Rib & Shrimp", desc: "Half slab ribs with 4 jumbo or coconut shrimp; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Sausage & Pepper Platter", desc: "3 sausage links, peppers and marinara; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." },
+  { name: "Baby Back Ribs — Half Slab", desc: "Half slab ribs; served with house salad or soup, choice of fries, onion rings or baked potato, and a roll." }
+];
+const HANDHELDS_MATCHING = [
+  { name: "Combo (Italian Beef & Sausage)", desc: "Italian beef and sausage on French bread; choice of fries or onion rings. Cheese or peppers may be added. Beef can be dipped, dry or served with gravy." },
+  { name: "Breaded Cod Sandwich", desc: "Lettuce, tomato and tartar sauce on a burger bun; choice of fries or onion rings." },
+  { name: "Eggplant Parmesan", desc: "On French bread; choice of fries or onion rings. Cheese or peppers may be added." },
+  { name: "Chicken Parmesan", desc: "On French bread; choice of fries or onion rings. Cheese or peppers may be added." },
+  { name: "Italian Meatball", desc: "On French bread with marinara; choice of fries or onion rings. Cheese or peppers may be added." },
+  { name: "Italian Beef", desc: "On French bread; choice of fries or onion rings. Cheese or peppers may be added. Beef can be dipped, dry or served with gravy." },
+  { name: "Italian Sausage", desc: "On French bread with marinara; choice of fries or onion rings. Cheese or peppers may be added." },
+  { name: "Grilled Chicken", desc: "Grilled chicken, lettuce, tomato and mayo on French bread; choice of fries or onion rings." },
+  { name: "Grilled Chicken TBM", desc: "Grilled chicken, tomato, basil, fresh mozzarella and balsamic glaze on a burger bun; choice of fries or onion rings." }
+];
+const BURGERS_MATCHING = [
+  { name: "Cheeseburger (1/2 lb)", desc: "Ketchup, mustard, lettuce, onion and tomato with cheese; grilled onions available; choice of onion rings or fries." },
+  { name: "Zazzo's Burger", desc: "Served on garlic bread with American cheese; choice of onion rings or fries." },
+  { name: "Western Burger", desc: "Chipotle sauce, onion ring and cheddar cheese; choice of onion rings or fries." },
+  { name: "Boss Burger", desc: "Lettuce, tomato, red onion, jalapeño, cheddar cheese and chipotle sauce; choice of onion rings or fries." },
+  { name: "Hamburger (1/2 lb)", desc: "Ketchup, mustard, lettuce, onion and tomato; choice of onion rings or fries." }
+];
+const WRAPS_MATCHING = [
+  { name: "Chipotle Chicken Wrap", desc: "Grilled chicken, lettuce, tomato, cheddar cheese and chipotle sauce; choice of onion rings or fries." },
+  { name: "Chicken Caesar Wrap", desc: "Grilled chicken, lettuce, tomato, parmesan and Caesar dressing; choice of onion rings or fries." },
+  { name: "Buffalo Chicken Wrap", desc: "Breaded buffalo chicken, lettuce, tomato and ranch dressing; choice of onion rings or fries." }
+];
 const CUSTOMER_ENROLLMENT_STEPS = [
   "Go to the server computer and select the guest's table.",
   "Click the Customer tab.",
@@ -1857,6 +1891,12 @@ const DYNAMIC_FIXED = {
     { cat: 'Specials', gen: () => buildMatchingQuestion(SPECIALS_MATCHING) },
     { cat: 'Pizza Crust Sizes', gen: () => buildMatchingQuestion(CRUST_SIZE_MATCHING) },
     { cat: 'Loyalty Program', gen: () => buildOrderingQuestion(CUSTOMER_ENROLLMENT_STEPS) }
+  ],
+  3: [
+    { cat: 'Dinners', gen: () => buildMatchingQuestion(DINNERS_MATCHING) },
+    { cat: 'Handhelds', gen: () => buildMatchingQuestion(HANDHELDS_MATCHING) },
+    { cat: 'Burgers', gen: () => buildMatchingQuestion(BURGERS_MATCHING) },
+    { cat: 'Wraps', gen: () => buildMatchingQuestion(WRAPS_MATCHING) }
   ]
 };
 function buildTestSet(day){
