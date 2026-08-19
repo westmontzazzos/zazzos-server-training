@@ -969,24 +969,18 @@ let studyMode = false;
 // A link like  ?btest=1  opens the Bartender specialty-drinks test.
 let bartenderTestMode = false;
 // A link like  ?day=2&preview=1  shows the questions with no lockdown, no name gate, no submission —
-// for a manager to look at, not for a trainee to actually take.
-let previewMode = false;
-
 (function initFocusedMode(){
   const params = new URLSearchParams(window.location.search);
   const d = parseInt(params.get('day'));
   const s = params.get('study');
   const bt = params.get('btest');
-  const pv = params.get('preview');
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
-    previewMode = !!pv;
   } else if(s){
     studyMode = true;
   } else if(bt){
     bartenderTestMode = true;
-    previewMode = !!pv;
   }
 })();
 function TEST_DAY_CONFIG_KEYS_OK(d){ return [2,3,4].includes(d); }
@@ -2913,50 +2907,38 @@ function renderTraineeHub(){
   <button class="newset-btn" id="mark-complete-btn" style="margin-top:18px; width:100%;">Mark Training Complete</button>`;
 }
 
-function renderLinkRow(url){
-  return `<div class="link-box">${url}</div>
-  <div class="link-actions" style="margin-bottom:16px;">
-    <button type="button" class="link-copy-btn" data-copylink="${url}">Copy</button>
-  </div>`;
-}
-
 function renderBarLinks(){
-  const base = `${window.location.origin}${window.location.pathname}`;
-  const testUrl = `${base}?btest=1`;
-  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — no lockdown, nothing submits. Copy grabs the real link to send to a trainee.</div>`;
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.</div>`;
   html += `<div class="quiz-card">
-    <div class="quiz-cat">Day 5 Test — graded, tracked</div>
-    <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
-    <button type="button" class="link-preview-btn" data-previewbar="1" style="width:100%; margin-bottom:14px;">Preview in App</button>
-    <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
-    ${renderLinkRow(testUrl)}
+    <div class="quiz-cat">Day 5</div>
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button type="button" class="link-preview-btn" data-previewbar="1" style="flex:1;">Preview</button>
+      <button type="button" class="link-copy-btn" data-copylink="${window.location.origin}${window.location.pathname}?btest=1" style="flex:1;">Copy</button>
+    </div>
   </div>`;
   [2,3,4].forEach(day=>{
-    const testUrlDay = `${base}?day=${day}`;
+    const testUrlDay = `${window.location.origin}${window.location.pathname}?day=${day}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
-      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
-      <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
-      <button type="button" class="link-preview-btn" data-previewday="${day}" style="width:100%; margin-bottom:14px;">Preview in App</button>
-      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
-      ${renderLinkRow(testUrlDay)}
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button type="button" class="link-preview-btn" data-previewday="${day}" style="flex:1;">Preview</button>
+        <button type="button" class="link-copy-btn" data-copylink="${testUrlDay}" style="flex:1;">Copy</button>
+      </div>
     </div>`;
   });
   return html;
 }
 
 function renderLinks(){
-  const base = `${window.location.origin}${window.location.pathname}`;
-  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — no lockdown, nothing submits. Copy grabs the real link to send to a trainee.</div>`;
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.</div>`;
   [2,3,4].forEach(day=>{
-    const testUrl = `${base}?day=${day}`;
+    const testUrl = `${window.location.origin}${window.location.pathname}?day=${day}`;
     html += `<div class="quiz-card">
       <div class="quiz-cat">Day ${day}</div>
-      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Test (graded, tracked)</div>
-      <div style="font-size:13px; font-weight:700; margin:10px 0 4px;">Preview — look at the questions</div>
-      <button type="button" class="link-preview-btn" data-previewday="${day}" style="width:100%; margin-bottom:14px;">Preview in App</button>
-      <div style="font-size:13px; font-weight:700; margin-bottom:4px;">Copy — grab the real link</div>
-      ${renderLinkRow(testUrl)}
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button type="button" class="link-preview-btn" data-previewday="${day}" style="flex:1;">Preview</button>
+        <button type="button" class="link-copy-btn" data-copylink="${testUrl}" style="flex:1;">Copy</button>
+      </div>
     </div>`;
   });
   return html;
