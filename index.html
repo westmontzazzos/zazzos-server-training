@@ -2323,6 +2323,10 @@ let serverGateTapCount = 0;
 let serverGateTapTimer = null;
 let bartenderGateTapCount = 0;
 let bartenderGateTapTimer = null;
+let serverTestingTapCount = 0;
+let serverTestingTapTimer = null;
+let bartenderTestingTapCount = 0;
+let bartenderTestingTapTimer = null;
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth();
 
@@ -2634,6 +2638,24 @@ function renderResults(){
       html += `<div class="callout">No submitted tests yet for ${escapeHtml(trainee.name)}. Matched by name typed on the test — if they typed it differently, it won't show up here.</div>`;
       return html;
     }
+    const byTest = {};
+    mine.forEach(r=>{
+      const key = (r.role === 'bartender') ? 'Bartender · Day 5 Test' : `Day ${r.day}`;
+      if(!byTest[key]) byTest[key] = { total:0, failed:0 };
+      byTest[key].total++;
+      if(r.status === 'failed_left_page') byTest[key].failed++;
+    });
+    const summaryRows = Object.keys(byTest).map(key=>{
+      const s = byTest[key];
+      return `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;">
+        <span>${key}</span>
+        <span style="color:${s.failed>0?'#C0392B':'var(--muted)'};">${s.total} attempt${s.total===1?'':'s'}${s.failed>0 ? ` · ${s.failed} left the page` : ''}</span>
+      </div>`;
+    }).join('');
+    html += `<div class="quiz-card" style="margin-bottom:14px;">
+      <div class="quiz-cat">Attempt Summary</div>
+      ${summaryRows}
+    </div>`;
     mine.forEach(r=>{
       const failed = r.status === 'failed_left_page';
       const when = new Date(r.created_at).toLocaleString();
@@ -2947,11 +2969,10 @@ function renderLinks(){
 function renderPreviewTest(){
   if(state.previewBar){
     const set = buildBartenderTestSet();
-    let html = `<div class="callout" style="margin-top:0;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
+    let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
     (set.fixed||[]).forEach(q=>{
       html += `<div class="quiz-card"><div class="quiz-cat">Short Answer</div>
         <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
-        <div style="color:#1B6B3A; margin-top:8px; font-size:13px;">Answer: ${q.answer}</div>
       </div>`;
     });
     return html;
@@ -2960,23 +2981,15 @@ function renderPreviewTest(){
   const day = state.previewDay;
   const set = buildTestSet(day);
   const cfg = TEST_DAY_CONFIG[day];
-  let html = `<div class="callout" style="margin-top:0;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
 
   set.mc.forEach(q=>{
     html += `<div class="mcq">
       <div class="mcq-cat">${q.cat}</div>
       <div class="mcq-prompt">${q.prompt}</div>`;
-    if(q.multiSelect){
-      q.options.forEach(opt=>{
-        const cls = q.correctSet.includes(opt) ? 'mcopt correct' : 'mcopt';
-        html += `<div class="${cls}">${opt}${q.correctSet.includes(opt) ? ' ✓' : ''}</div>`;
-      });
-    } else {
-      q.options.forEach(opt=>{
-        const cls = opt===q.correct ? 'mcopt correct' : 'mcopt';
-        html += `<div class="${cls}">${opt}${opt===q.correct ? ' ✓' : ''}</div>`;
-      });
-    }
+    q.options.forEach(opt=>{
+      html += `<div class="mcopt">${opt}</div>`;
+    });
     html += `</div>`;
   });
 
@@ -2995,21 +3008,19 @@ function renderPreviewTest(){
         <div class="quiz-cat">${q.cat}</div>
         <div class="qtext" style="margin-bottom:10px;">Match each item to its description.</div>
         ${q.instructions ? `<div class="qtext" style="margin-bottom:10px; font-style:italic; color:var(--muted);">${q.instructions}</div>` : ''}`;
-      q.names.forEach((name,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${name} — <b>${q.correctLetters[i]}</b></div>`; });
+      q.names.forEach((name,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${name}</div>`; });
       html += `<div style="background:var(--bg); border-radius:10px; padding:12px 14px; margin-top:10px; font-size:13px; line-height:1.6;">`;
       q.descs.forEach((desc,pos)=>{ html += `<b>${q.letters[pos]}.</b> ${desc}<br>`; });
       html += `</div></div>`;
     } else if(q.ordering){
       html += `<div class="quiz-card">
         <div class="quiz-cat">${q.cat}</div>
-        <div class="qtext" style="margin-bottom:10px;">Correct order:</div>`;
-      const orderedSteps = q.steps.map((s,i)=>({s, num:q.correctOrder[i]})).sort((a,b)=>a.num-b.num);
-      orderedSteps.forEach((item,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${item.s}</div>`; });
+        <div class="qtext" style="margin-bottom:10px;">Put these steps in the correct order.</div>`;
+      q.steps.forEach((step,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${step}</div>`; });
       html += `</div>`;
     } else {
       html += `<div class="quiz-card"><div class="quiz-cat">${q.cat}</div>
         <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
-        <div style="color:#1B6B3A; margin-top:8px; font-size:13px;">Answer: ${q.answer}</div>
       </div>`;
     }
   });
@@ -3490,7 +3501,8 @@ function renderBartenderTest(){
     if(a){ answered++; if(a===q.correct) correctCount++; }
   });
 
-  let html = `<div class="focused-wrap">
+  let html = `<div class="focused-wrap" style="position:relative;">
+    <div id="bartender-testing-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
     <div class="focused-head">
       <h1>Zazzo's</h1>
       <div class="sub">Day 5 Test — ${escapeHtml(bartenderTraineeName)}</div>
@@ -3578,7 +3590,7 @@ function bartenderHandleLeavePage(){
 function bartenderHandleReturn(){ bartenderClearLeaveTimer(); }
 function bartenderFailTest(){
   bartenderTestPhase = 'failed';
-  bartenderFailReason = `By starting this test, ${bartenderTraineeName.trim()} acknowledged the policy that this page must remain open and in view for the full duration of the test. That agreement was not upheld, so this test session has been closed and recorded as not completed.`;
+  bartenderFailReason = `This session has been canceled. Before starting, you acknowledged that this page needed to stay open for the full test. This link is now expired — please contact your manager for a new one.`;
   submitBartenderTestResult('failed_left_page');
   document.removeEventListener('visibilitychange', bartenderOnVisibilityChange);
   window.removeEventListener('blur', bartenderOnBlur);
@@ -3727,7 +3739,8 @@ function renderFocusedTest(){
     }
   });
 
-  let html = `<div class="focused-wrap">
+  let html = `<div class="focused-wrap" style="position:relative;">
+    <div id="server-testing-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
     <div class="focused-head">
       <h1>Zazzo's</h1>
       <div class="sub">Day ${day} Test — ${escapeHtml(traineeName)}</div>
@@ -3936,7 +3949,7 @@ function handleReturnToPage(){
 }
 function failTest(){
   testPhase = 'failed';
-  state._failReason = `By starting this test, ${traineeName.trim()} acknowledged the policy that this page must remain open and in view for the full duration of the test. That agreement was not upheld, so this test session has been closed and recorded as not completed.`;
+  state._failReason = `This session has been canceled. Before starting, you acknowledged that this page needed to stay open for the full test. This link is now expired — please contact your manager for a new one.`;
   submitTestResult('failed_left_page', state._failReason);
   document.removeEventListener('visibilitychange', onVisibilityChange);
   window.removeEventListener('blur', onWindowBlur);
