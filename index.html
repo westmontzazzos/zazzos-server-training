@@ -467,6 +467,15 @@
   }
   .qtext .qcheck.on{ background:var(--green); border-color:var(--green); }
   .qtext .qcheck.on::after{ content:"✓"; color:#fff; font-size:10px; display:block; text-align:center; line-height:15px;}
+  .gate-check{
+    flex:0 0 22px; width:22px; height:22px;
+    border-radius:6px;
+    border:1.5px solid var(--hair);
+    cursor:pointer;
+    background:#fff;
+  }
+  .gate-check.on{ background:var(--green); border-color:var(--green); }
+  .gate-check.on::after{ content:"✓"; color:#fff; font-size:14px; display:block; text-align:center; line-height:19px; font-weight:700; }
   .qtext span{ flex:1; }
   textarea.answer{
     width:100%;
@@ -2326,6 +2335,8 @@ let bartenderGateTapTimer = null;
 let serverTestingTapCount = 0;
 let serverTestingTapTimer = null;
 let bartenderTestingTapCount = 0;
+let gateAgreed = false;
+let bartenderGateAgreed = false;
 let bartenderTestingTapTimer = null;
 let calViewYear = new Date().getFullYear();
 let calViewMonth = new Date().getMonth();
@@ -3472,7 +3483,11 @@ function renderBartenderTest(){
         <div class="policy-box">
           Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
         </div>
-        <button class="start-btn" id="start-bartender-test-btn" ${bartenderTraineeName.trim() ? '' : 'disabled'}>Start Test</button>
+        <label style="display:flex; align-items:center; gap:10px; margin:14px 0; cursor:pointer;">
+          <div class="gate-check ${bartenderGateAgreed?'on':''}" id="bartender-gate-agree-check"></div>
+          <span style="font-size:14px;">I understand and agree to stay on this page for the full test.</span>
+        </label>
+        <button class="start-btn" id="start-bartender-test-btn" ${(bartenderTraineeName.trim() && bartenderGateAgreed) ? '' : 'disabled'}>Start Test</button>
       </div>
     </div>`;
   }
@@ -3607,7 +3622,16 @@ function attachBartenderTestHandlers(){
     nameInput.addEventListener('input', ()=>{
       bartenderTraineeName = nameInput.value;
       const btn = document.getElementById('start-bartender-test-btn');
-      if(btn) btn.disabled = !bartenderTraineeName.trim();
+      if(btn) btn.disabled = !(bartenderTraineeName.trim() && bartenderGateAgreed);
+    });
+  }
+  const bartenderGateAgreeCheck = document.getElementById('bartender-gate-agree-check');
+  if(bartenderGateAgreeCheck){
+    bartenderGateAgreeCheck.addEventListener('click', ()=>{
+      bartenderGateAgreed = !bartenderGateAgreed;
+      bartenderGateAgreeCheck.classList.toggle('on', bartenderGateAgreed);
+      const btn = document.getElementById('start-bartender-test-btn');
+      if(btn) btn.disabled = !(bartenderTraineeName.trim() && bartenderGateAgreed);
     });
   }
   const startBtn = document.getElementById('start-bartender-test-btn');
@@ -3727,7 +3751,11 @@ function renderFocusedTest(){
         <div class="policy-box">
           Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
         </div>
-        <button class="start-btn" id="start-test-btn" ${traineeName.trim() ? '' : 'disabled'}>Start Test</button>
+        <label style="display:flex; align-items:center; gap:10px; margin:14px 0; cursor:pointer;">
+          <div class="gate-check ${gateAgreed?'on':''}" id="gate-agree-check"></div>
+          <span style="font-size:14px;">I understand and agree to stay on this page for the full test.</span>
+        </label>
+        <button class="start-btn" id="start-test-btn" ${(traineeName.trim() && gateAgreed) ? '' : 'disabled'}>Start Test</button>
       </div>
     </div>`;
   }
@@ -3995,7 +4023,16 @@ function attachFocusedHandlers(){
     nameInput.addEventListener('input', ()=>{
       traineeName = nameInput.value;
       const btn = document.getElementById('start-test-btn');
-      if(btn) btn.disabled = !traineeName.trim();
+      if(btn) btn.disabled = !(traineeName.trim() && gateAgreed);
+    });
+  }
+  const gateAgreeCheck = document.getElementById('gate-agree-check');
+  if(gateAgreeCheck){
+    gateAgreeCheck.addEventListener('click', ()=>{
+      gateAgreed = !gateAgreed;
+      gateAgreeCheck.classList.toggle('on', gateAgreed);
+      const btn = document.getElementById('start-test-btn');
+      if(btn) btn.disabled = !(traineeName.trim() && gateAgreed);
     });
   }
   const startBtn = document.getElementById('start-test-btn');
