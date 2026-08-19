@@ -3643,7 +3643,7 @@ function attachBartenderTestHandlers(){
         clearTimeout(bartenderGateTapTimer);
         if(!bartenderTraineeName.trim()){ window.alert('Enter a name first.'); return; }
         const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
-        if(pin !== '4321'){ window.alert('Incorrect PIN.'); return; }
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
         (async ()=>{
           const set = buildBartenderTestSet();
           bartenderDeck = set.mc;
@@ -4000,7 +4000,7 @@ function attachFocusedHandlers(){
         clearTimeout(serverGateTapTimer);
         if(!traineeName.trim()){ window.alert('Enter a name first.'); return; }
         const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
-        if(pin !== '4321'){ window.alert('Incorrect PIN.'); return; }
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
         (async ()=>{
           const day = focusedDay;
           const set = buildTestSet(day);
