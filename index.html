@@ -1636,8 +1636,17 @@ const FIXED_MC_BANK = {
   'Coupons & VIP': [
     { prompt: "How many coupons can be applied to one table?", correct: "One", decoys: ["Two", "Three", "Unlimited"] },
     { prompt: "Can different types of discounts and coupons be applied all at once?", correct: "No", decoys: ["Yes, always", "Only for VIP members", "Only on weekends"] },
-    { prompt: "If a customer asks about available coupons, what do you ask them?", correct: "Ask if they're part of our Text Club or Loyalty Program", decoys: ["Ask for their receipt from last visit", "Ask if they follow us on social media", "Ask how many people are in their party"] }
+    { prompt: "If a customer asks about available coupons, what do you ask them?", correct: "Ask if they're part of our Text Club or Loyalty Program", decoys: ["Ask for their receipt from last visit", "Ask if they follow us on social media", "Ask how many people are in their party"] },
+    { prompt: "A customer is a VIP member and wants to redeem an item. What do you do?", correct: "Have them show you their phone, enter code 1234 on the corresponding item, then go into the computer and select the coupon that matches the item they are redeeming", decoys: ["Apply a general VIP discount to the entire check", "Ask a manager to remove the item from the bill", "Have them provide their phone number and automatically discount the least expensive item"] }
+  ],
+  'Liquor MC': [
+    { prompt: "What is the brand name of our house wine?", correct: "Canyon Road", decoys: ["Kendall-Jackson", "Josh Cellars", "Barefoot"] }
   ]
+};
+const DRAFT_BEER_SELECT3 = {
+  prompt: "Which three of the following are beers we currently have on draft? Select three.",
+  options: ["Blue Moon", "Miller Lite", "Stella", "Budweiser", "Corona", "Coors Light"],
+  correctSet: ["Blue Moon", "Miller Lite", "Stella"]
 };
 function genFixedMCQuestion(cat, qIndex){
   const bank = FIXED_MC_BANK[cat];
@@ -1650,16 +1659,21 @@ function genFixedMCQuestion(cat, qIndex){
   const options = shuffleArr([q.correct, ...decoys]);
   return { id:`fx-${cat}-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat, prompt:q.prompt, options, correct:q.correct };
 }
+function genMultiSelectQuestion(qIndex){
+  const q = DRAFT_BEER_SELECT3;
+  const options = shuffleArr(q.options);
+  return { id:`ms-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Liquor', prompt:q.prompt, options, correctSet:q.correctSet, multiSelect:true };
+}
 
 const TEST_DAY_CONFIG = {
   2: { mc:[{label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
            {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
        fixedCats:[] },
   3: { mc:[], fixedCats:[] },
-  4: { mc:[{label:'Pastas', source:'dinein', cat:'Pastas', n:5}, {label:'Desserts', source:'dinein', cat:'Desserts', n:4},
-           {label:'Salads', source:'dinein', cat:'Salads', n:4}, {label:'Soup', source:'fixedmc', cat:'Soup', n:1},
-           {label:'Draft Beer', source:'singleliquorcat', cat:'Draft Beer', n:1}, {label:'Coupons & VIP', source:'fixedmc', cat:'Coupons & VIP', n:3}],
-       fixedCats:['Liquor'] }
+  4: { mc:[{label:'Soup', source:'fixedmc', cat:'Soup', n:1},
+           {label:'House Wine', source:'fixedmc', cat:'Liquor MC', n:1}, {label:'Draft Beer Select 3', source:'multiselect', cat:'Liquor', n:1},
+           {label:'Coupons & VIP', source:'fixedmc', cat:'Coupons & VIP', n:4}],
+       fixedCats:[] }
 };
 
 function shuffleArr(arr){
@@ -1884,6 +1898,35 @@ function buildOrderingQuestion(steps){
   return { ordering:true, steps: displaySteps, correctOrder, answer };
 }
 
+const PASTAS_MATCHING = [
+  { name: "Spaghetti", desc: "Spaghetti pasta served with your choice of marinara, meat sauce, tomato cream sauce, vodka sauce, or butter sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Mostaccioli", desc: "Penne pasta served with your choice of marinara, meat sauce, tomato cream sauce, vodka sauce, or butter sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Baked Mostaccioli", desc: "Penne pasta served with your choice of marinara, meat sauce, tomato cream sauce, vodka sauce, or butter sauce, topped with baked mozzarella cheese. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Homemade Meat Lasagna", desc: "Layers of pasta, meat, ricotta cheese, mozzarella, and marinara sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Cheese Ravioli", desc: "Six cheese-filled ravioli served with your choice of marinara, meat sauce, tomato cream sauce, vodka sauce, or butter sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Zazzo's Ravioli", desc: "Six cheese ravioli served in homemade spinach cream sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Fettuccine Alfredo", desc: "Fettuccine pasta tossed in Alfredo sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Chicken Fettuccine Alfredo", desc: "Fettuccine pasta tossed in Alfredo sauce with grilled chicken. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Mac & Cheese", desc: "Elbow pasta tossed in cheese sauce. Bacon or buffalo chicken can be added on top. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Chicken Tetrazzini", desc: "Penne pasta with chicken, mushrooms, Alfredo sauce, and baked mozzarella. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Chicken & Mushrooms", desc: "Penne pasta with grilled chicken and mushrooms tossed in Alfredo sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Homemade Chicken Parmesan", desc: "Breaded chicken parmesan served with your choice of spaghetti pasta or penne pasta and marinara or meat sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Homemade Eggplant Parmesan", desc: "Breaded eggplant parmesan served with your choice of spaghetti pasta or penne pasta and marinara or meat sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Penne Arrabbiata", desc: "Penne pasta with sausage and peppers tossed in a spicy marinara sauce. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Tomato & Basil Pasta", desc: "Your choice of penne pasta, spaghetti pasta, or fettuccine pasta tossed with olive oil, basil, tomatoes, and garlic. Served with your choice of soup, house salad, or chopped salad, and a roll." },
+  { name: "Gnocchi", desc: "Traditionally served with tomato cream sauce, tomatoes, and basil. At the customer's request, marinara, meat sauce, or vodka sauce may be substituted. Served with your choice of soup, house salad, or chopped salad, and a roll." }
+];
+const SALADS_MATCHING = [
+  { name: "Caesar Salad", desc: "Romaine lettuce, parmesan cheese, and croutons. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in large only." },
+  { name: "Chicken Caesar Salad", desc: "Romaine lettuce, grilled chicken, parmesan cheese, and croutons. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in large only." },
+  { name: "House Salad", desc: "Salad blend, tomato. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in small or large." },
+  { name: "Chopped Salad", desc: "Salad blend, grilled chicken and bacon, gorgonzola cheese, tomato, elbow pasta, and green onion. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in small or large." },
+  { name: "BBQ Chicken Salad", desc: "Salad blend, BBQ chicken and bacon, cheddar and mozzarella cheeses, tomato, and green onion. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in large only." },
+  { name: "M'Kats Buffalo Chicken Salad", desc: "Salad blend, breaded buffalo chicken, mozzarella and cheddar cheeses, tomato, and green onion. Served with your choice of balsamic vinaigrette, blue cheese, Caesar, house dressing, or ranch, and a roll. Available in large only." },
+  { name: "Caprese Salad", desc: "Five pieces of fresh mozzarella layered with five slices of Roma tomato, topped with fresh basil and balsamic vinaigrette, and served with a roll. Available as a 5-piece order." }
+];
+const DESSERTS_REAL = ["Brownie","Cheesecake","Tiramisu","Chocolate Chip Cookies","Vanilla Ice Cream","Brownie Sundae"];
+
 const DYNAMIC_FIXED = {
   2: [
     { cat: 'Specialty Pizzas', gen: () => buildMatchingQuestion(SPECIALTY_PIZZAS) },
@@ -1897,6 +1940,11 @@ const DYNAMIC_FIXED = {
     { cat: 'Handhelds', gen: () => buildMatchingQuestion(HANDHELDS_MATCHING) },
     { cat: 'Burgers', gen: () => buildMatchingQuestion(BURGERS_MATCHING) },
     { cat: 'Wraps', gen: () => buildMatchingQuestion(WRAPS_MATCHING) }
+  ],
+  4: [
+    { cat: 'Pastas', gen: () => buildMatchingQuestion(PASTAS_MATCHING) },
+    { cat: 'Desserts', gen: () => ({ prompt: 'List all six desserts offered at Zazzo\'s.', answer: DESSERTS_REAL.join(', ') }) },
+    { cat: 'Salads', gen: () => buildMatchingQuestion(SALADS_MATCHING) }
   ]
 };
 function buildTestSet(day){
@@ -1909,6 +1957,7 @@ function buildTestSet(day){
       if(group.source==='liquor') mc.push(genLiquorQuestion(i, usedLiquorNames));
       else if(group.source==='singleliquorcat') mc.push(genSingleLiquorCatQuestion(group.cat, i, usedLiquorNames));
       else if(group.source==='fixedmc') mc.push(genFixedMCQuestion(group.cat, i));
+      else if(group.source==='multiselect') mc.push(genMultiSelectQuestion(i));
       else if(group.source==='specialtypizza') mc.push(genSpecialtyPizzaQuestion(i));
       else if(group.source==='pizzatopping') mc.push(genPizzaToppingQuestion(i, usedDineinNames));
       else mc.push(genDineinQuestion(group.cat, i, usedDineinNames));
@@ -3618,7 +3667,11 @@ function renderFocusedTest(){
   let answered=0, correctCount=0;
   set.mc.forEach(q=>{
     const a = state.testMcAnswers[q.id];
-    if(a){ answered++; if(a===q.correct) correctCount++; }
+    if(q.multiSelect){
+      if(Array.isArray(a) && a.length){ answered++; const setA=new Set(a); const setC=new Set(q.correctSet); if(setA.size===setC.size && [...setA].every(x=>setC.has(x))) correctCount++; }
+    } else {
+      if(a){ answered++; if(a===q.correct) correctCount++; }
+    }
   });
 
   let html = `<div class="focused-wrap">
@@ -3628,6 +3681,26 @@ function renderFocusedTest(){
     </div>`;
 
   set.mc.forEach(q=>{
+    if(q.multiSelect){
+      const selected = state.testMcAnswers[q.id] || [];
+      const locked = selected.length >= q.correctSet.length;
+      html += `<div class="mcq">
+        <div class="mcq-cat">${q.cat}</div>
+        <div class="mcq-prompt">${q.prompt}</div>`;
+      q.options.forEach(opt=>{
+        const isSelected = selected.includes(opt);
+        let cls = 'mcopt';
+        if(locked){
+          if(q.correctSet.includes(opt)) cls += ' correct';
+          else if(isSelected) cls += ' wrong';
+        } else if(isSelected){
+          cls += ' selected';
+        }
+        html += `<button class="${cls}" ${locked?'disabled':''} data-msanswer="${q.id}" data-msopt="${encodeURIComponent(opt)}" data-mslimit="${q.correctSet.length}">${isSelected?'☑ ':'☐ '}${opt}</button>`;
+      });
+      html += `</div>`;
+      return;
+    }
     const selected = state.testMcAnswers[q.id];
     html += `<div class="mcq">
       <div class="mcq-cat">${q.cat}</div>
@@ -3721,7 +3794,15 @@ async function submitTestResult(status, failReason){
   const day = focusedDay;
   const set = state.testSets[day] || {mc:[]};
   let mcScore = 0;
-  set.mc.forEach(q=>{ if(state.testMcAnswers[q.id]===q.correct) mcScore++; });
+  set.mc.forEach(q=>{
+    if(q.multiSelect){
+      const a = state.testMcAnswers[q.id];
+      if(Array.isArray(a)){
+        const setA = new Set(a), setC = new Set(q.correctSet);
+        if(setA.size===setC.size && [...setA].every(x=>setC.has(x))) mcScore++;
+      }
+    } else if(state.testMcAnswers[q.id]===q.correct) mcScore++;
+  });
   const fixedAnswersForDay = {};
   Object.keys(state.testFixedAnswers).forEach(k=>{
     if(k.startsWith(`test-${day}-`)) fixedAnswersForDay[k] = state.testFixedAnswers[k];
@@ -3842,6 +3923,18 @@ function attachFocusedHandlers(){
       const opt = decodeURIComponent(el.dataset.mcopt);
       if(state.testMcAnswers[qid]) return;
       state.testMcAnswers[qid] = opt;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-msanswer]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const qid = el.dataset.msanswer;
+      const opt = decodeURIComponent(el.dataset.msopt);
+      const limit = parseInt(el.dataset.mslimit);
+      const current = state.testMcAnswers[qid] || [];
+      if(current.length >= limit) return;
+      if(current.includes(opt)) return;
+      state.testMcAnswers[qid] = [...current, opt];
       render();
     });
   });
