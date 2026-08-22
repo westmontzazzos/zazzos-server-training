@@ -3706,13 +3706,9 @@ function bartenderFailTest(){
   bartenderFailReason = `This session has been canceled. Before starting, you acknowledged that this page needed to stay open for the full test. This link is now expired — please contact your manager for a new one.`;
   submitBartenderTestResult('failed_left_page');
   document.removeEventListener('visibilitychange', bartenderOnVisibilityChange);
-  window.removeEventListener('blur', bartenderOnBlur);
-  window.removeEventListener('focus', bartenderOnFocus);
   render();
 }
 function bartenderOnVisibilityChange(){ if(document.hidden) bartenderHandleLeavePage(); else bartenderHandleReturn(); }
-function bartenderOnBlur(){ bartenderHandleLeavePage(); }
-function bartenderOnFocus(){ bartenderHandleReturn(); }
 
 function attachBartenderTestHandlers(){
   const nameInput = document.getElementById('bartender-name-input');
@@ -3743,8 +3739,6 @@ function attachBartenderTestHandlers(){
       bartenderFixedAnswers = {};
       bartenderTestPhase = 'testing';
       document.addEventListener('visibilitychange', bartenderOnVisibilityChange);
-      window.addEventListener('blur', bartenderOnBlur);
-      window.addEventListener('focus', bartenderOnFocus);
       render();
     });
   }
@@ -3822,8 +3816,6 @@ function attachBartenderTestHandlers(){
     submitBtn.addEventListener('click', ()=>{
       bartenderClearLeaveTimer();
       document.removeEventListener('visibilitychange', bartenderOnVisibilityChange);
-      window.removeEventListener('blur', bartenderOnBlur);
-      window.removeEventListener('focus', bartenderOnFocus);
       bartenderTestPhase = 'submitted';
       submitBartenderTestResult('completed');
       render();
@@ -4105,15 +4097,11 @@ function failTest(){
   state._failReason = `This session has been canceled. Before starting, you acknowledged that this page needed to stay open for the full test. This link is now expired — please contact your manager for a new one.`;
   submitTestResult('failed_left_page', state._failReason);
   document.removeEventListener('visibilitychange', onVisibilityChange);
-  window.removeEventListener('blur', onWindowBlur);
-  window.removeEventListener('focus', onWindowFocus);
   render();
 }
 function onVisibilityChange(){
   if(document.hidden) handleLeavePage(); else handleReturnToPage();
 }
-function onWindowBlur(){ handleLeavePage(); }
-function onWindowFocus(){ handleReturnToPage(); }
 
 function attachFocusedHandlers(){
   const nameInput = document.getElementById('trainee-name-input');
@@ -4141,8 +4129,6 @@ function attachFocusedHandlers(){
       state.testMcAnswers = {};
       testPhase = 'testing';
       document.addEventListener('visibilitychange', onVisibilityChange);
-      window.addEventListener('blur', onWindowBlur);
-      window.addEventListener('focus', onWindowFocus);
       render();
     });
   }
@@ -4276,8 +4262,6 @@ function attachFocusedHandlers(){
     submitBtn.addEventListener('click', ()=>{
       clearLeaveTimer();
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('blur', onWindowBlur);
-      window.removeEventListener('focus', onWindowFocus);
       testPhase = 'submitted';
       submitTestResult('completed', null);
       render();
