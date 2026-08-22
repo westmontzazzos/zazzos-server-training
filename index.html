@@ -991,6 +991,10 @@ let lockedTraineeName = '';
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
     focusedMode = true;
     focusedDay = d;
+    state.testSets = {};
+    state.testMcAnswers = {};
+    state.testFixedChecks = {};
+    state.testFixedAnswers = {};
   } else if(s){
     studyMode = true;
   } else if(bt){
@@ -1074,6 +1078,11 @@ async function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
       const saved = JSON.parse(raw);
+      // Never restore in-progress test answers from a prior session, no matter how old the saved data is.
+      delete saved.testMcAnswers;
+      delete saved.testFixedAnswers;
+      delete saved.testFixedChecks;
+      delete saved.testSets;
       state = Object.assign(state, saved);
     }
   }catch(e){ /* no saved state yet */ }
@@ -1082,9 +1091,7 @@ async function loadState(){
 async function saveState(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      checks: state.checks, quizChecks: state.quizChecks, answers: state.answers,
-      testSets: state.testSets, testMcAnswers: state.testMcAnswers,
-      testFixedChecks: state.testFixedChecks, testFixedAnswers: state.testFixedAnswers
+      checks: state.checks, quizChecks: state.quizChecks, answers: state.answers
     }));
   }catch(e){ console.error('save failed', e); }
   syncTraineeProgress();
