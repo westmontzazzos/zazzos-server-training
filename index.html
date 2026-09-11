@@ -979,6 +979,8 @@ let studyMode = false;
 
 // A link like  ?btest=1  opens the Bartender specialty-drinks test.
 let bartenderTestMode = false;
+// A link like  ?ctest=1  opens the Cashier carryout-menu test.
+let cashierTestMode = false;
 // If the link was generated from a specific trainee's profile, their name is baked in and locked.
 let lockedTraineeName = '';
 (function initFocusedMode(){
@@ -986,6 +988,7 @@ let lockedTraineeName = '';
   const d = parseInt(params.get('day'));
   const s = params.get('study');
   const bt = params.get('btest');
+  const ct = params.get('ctest');
   const tn = params.get('tname');
   if(tn) lockedTraineeName = tn;
   if(d && TEST_DAY_CONFIG_KEYS_OK(d)){
@@ -999,6 +1002,8 @@ let lockedTraineeName = '';
     studyMode = true;
   } else if(bt){
     bartenderTestMode = true;
+  } else if(ct){
+    cashierTestMode = true;
   }
 })();
 traineeName = lockedTraineeName || traineeName;
@@ -1707,6 +1712,95 @@ function genMultiSelectQuestion(qIndex){
   return { id:`ms-${qIndex}-${Math.random().toString(36).slice(2,7)}`, cat:'Liquor', prompt:q.prompt, options, correctSet:q.correctSet, multiSelect:true };
 }
 
+// ---------------- CASHIER / CARRYOUT MENU ----------------
+// Same real food as dine-in — cross-referenced descriptions, with only the real carryout-specific
+// differences applied (e.g. pasta comes with bread only for carryout, no soup/salad option).
+const CARRYOUT_PASTAS_MATCHING = [
+  { name: "Spaghetti", desc: "Served with bread" },
+  { name: "Mostaccioli", desc: "Served with bread" },
+  { name: "Baked Mostaccioli", desc: "Baked mozzarella cheese on top. Served with bread" },
+  { name: "Homemade Meat Lasagna", desc: "Served with bread" },
+  { name: "Cheese Ravioli w/ Marinara", desc: "6 cheese ravioli with marinara. Served with bread" },
+  { name: "Zazzo's Ravioli", desc: "6 cheese ravioli in homemade spinach cream sauce. Served with bread" },
+  { name: "Fettuccine Alfredo", desc: "Served with bread" },
+  { name: "Chicken Fettuccine Alfredo", desc: "Served with bread" },
+  { name: "Mac & Cheese", desc: "Served with bread. Bacon or buffalo chicken can be added for an extra charge" },
+  { name: "Chicken Tetrazzini", desc: "Penne noodles, chicken, mushrooms, baked mozzarella and Alfredo. Served with bread" },
+  { name: "Chicken & Mushrooms", desc: "Penne noodles, chicken, mushrooms and Alfredo. Served with bread" },
+  { name: "Chicken Parm Pasta", desc: "Homemade Chicken Parmesan, pasta and marinara. Served with bread" },
+  { name: "Eggplant Parm Pasta", desc: "Homemade Eggplant Parmesan with pasta. Served with bread" },
+  { name: "Penne Arrabbiata", desc: "Sausage, peppers and spicy marinara. Served with bread" },
+  { name: "Tomato & Basil Pasta", desc: "Olive oil, basil, tomatoes, garlic and penne noodles. Served with bread" },
+  { name: "Gnocchi", desc: "Tomato cream sauce, tomatoes and basil. Served with bread" }
+];
+const CARRYOUT_DESSERTS_REAL = ["Brownie", "Cheesecake", "Tiramisu", "Cookies"];
+const CARRYOUT_SALADS_MATCHING = [
+  { name: "Chicken Caesar Salad", desc: "Romaine, grilled chicken, croutons and parmesan cheese. Add chicken +$3, add salmon +$9" },
+  { name: "Chopped Salad", desc: "Bacon, grilled chicken, red cabbage, tomato, carrots, green onion, pasta and gorgonzola. Served with a roll" },
+  { name: "House Salad", desc: "Served with a roll. Add chicken +$3, add salmon +$9" },
+  { name: "M'Kats Buffalo Chicken Salad", desc: "Breaded buffalo chicken, tomatoes, green onions, mozzarella and cheddar cheeses" },
+  { name: "BBQ Chicken Salad", desc: "Grilled BBQ chicken, bacon, cheddar cheese, mozzarella cheese, tomato and green onion. Served with a roll" },
+  { name: "Caesar Salad", desc: "Romaine, croutons and parmesan cheese" },
+  { name: "Caprese Salad", desc: "Mozzarella, basil, tomato topped with balsamic glaze. Served with a roll" }
+];
+const CARRYOUT_BURGERS_MATCHING = [
+  { name: "Cheeseburger (1/2 lb)", desc: "Ketchup, mustard, lettuce, onion and tomato; grilled onions available" },
+  { name: "Zazzo's Burger (1/2 lb)", desc: "Garlic bread base, American cheese, grilled onion" },
+  { name: "Western Burger (1/2 lb)", desc: "Chipotle sauce, onion ring, cheddar cheese" },
+  { name: "Boss Burger (1/2 lb)", desc: "1/2 lb Angus, lettuce, tomato, red onion, jalapeño, cheddar, chipotle sauce" },
+  { name: "Hamburger (1/2 lb)", desc: "Ketchup, mustard, lettuce, onion and tomato" }
+];
+const CARRYOUT_HANDHELDS_MATCHING = [
+  { name: "Combo", desc: "Beef and sausage on French bread. Add cheese +$1, add peppers +$1" },
+  { name: "Breaded Cod Sandwich", desc: "Lettuce, tomato and tartar sauce on a burger bun" },
+  { name: "Eggplant Parmesan", desc: "On French bread. Add cheese +$1, add peppers +$1" },
+  { name: "Chicken Parmesan", desc: "On French bread. Add cheese +$1, add peppers +$1" },
+  { name: "Italian Meatball", desc: "On French bread with marinara. Add cheese +$1, add peppers +$1" },
+  { name: "Italian Beef", desc: "On French bread. Add cheese +$1, add peppers +$1" },
+  { name: "Italian Sausage", desc: "On French bread with marinara. Add cheese +$1, add peppers +$1" },
+  { name: "Grilled Chicken", desc: "On French bread. Add cheese +$1, add peppers +$1" },
+  { name: "Grilled Chicken TBM", desc: "Grilled chicken, tomato, basil, fresh mozzarella and balsamic glaze" }
+];
+const CARRYOUT_WRAPS_MATCHING = [
+  { name: "Chipotle Chicken Wrap", desc: "Grilled chicken, lettuce, tomato, cheddar cheese and chipotle sauce" },
+  { name: "Chicken Caesar Wrap", desc: "Grilled chicken, lettuce, tomato, parmesan and Caesar dressing" },
+  { name: "Buffalo Chicken Wrap", desc: "Breaded buffalo chicken, lettuce, tomato and ranch dressing" }
+];
+const CARRYOUT_DINNER_SPECIALS_MATCHING = [
+  { name: "Bucket of Chicken", desc: "12 pieces pressure-cooked chicken, 3 salads, 3 sides, 3 rolls" },
+  { name: "Chicken & Rib", desc: "Pressure-cooked chicken and half slab of ribs" },
+  { name: "Salmon Dinner", desc: "House seasoning or Sweet Baby Ray's, served with veggies" }
+];
+
+function buildTestSetCashier(){
+  const usedDineinNames = new Set();
+  let mc = [];
+  const cfg = TEST_DAY_CONFIG_CASHIER;
+  cfg.mc.forEach(group=>{
+    for(let i=0;i<group.n;i++) mc.push(genFixedMCQuestion(group.cat, i));
+  });
+  const dynamicFixed = DYNAMIC_FIXED_CASHIER.map(d => Object.assign({ cat: d.cat }, d.gen()));
+  return { mc, dynamicFixed };
+}
+const TEST_DAY_CONFIG_CASHIER = {
+  mc: [
+    {label:'VIP Program', cat:'VIP Program', n:3}, {label:'Text Club', cat:'Text Club', n:3},
+    {label:'Pizza Club', cat:'Pizza Club', n:2}, {label:'Coupons & VIP', cat:'Coupons & VIP', n:3}
+  ]
+};
+const DYNAMIC_FIXED_CASHIER = [
+  { cat: 'Loyalty Program', gen: () => buildOrderingQuestion(CUSTOMER_ENROLLMENT_STEPS) },
+  { cat: 'Specialty Pizzas', gen: () => buildMatchingQuestion(SPECIALTY_PIZZAS) },
+  { cat: 'Appetizers (Carryout)', gen: () => buildMatchingQuestion(MENU_DATA.dinein.Appetizers) },
+  { cat: 'Handhelds (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_HANDHELDS_MATCHING) },
+  { cat: 'Burgers (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_BURGERS_MATCHING) },
+  { cat: 'Wraps (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_WRAPS_MATCHING) },
+  { cat: 'Pastas (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_PASTAS_MATCHING) },
+  { cat: 'Salads (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_SALADS_MATCHING) },
+  { cat: 'Dinner Specials (Carryout)', gen: () => buildMatchingQuestion(CARRYOUT_DINNER_SPECIALS_MATCHING) },
+  { cat: 'Desserts (Carryout)', gen: () => ({ prompt: 'List all four desserts offered for carryout.', answer: CARRYOUT_DESSERTS_REAL.join(', ') }) }
+];
+
 const TEST_DAY_CONFIG = {
   2: { mc:[{label:'VIP Program', source:'fixedmc', cat:'VIP Program', n:3}, {label:'Text Club', source:'fixedmc', cat:'Text Club', n:3},
            {label:'Pizza Club', source:'fixedmc', cat:'Pizza Club', n:2}],
@@ -2139,6 +2233,12 @@ function render(){
     attachBartenderTestHandlers();
     return;
   }
+  if(cashierTestMode){
+    app.innerHTML = renderCashierTest();
+    attachHandlers();
+    attachCashierTestHandlers();
+    return;
+  }
   if(state.tab==='home' && !state.role){
     app.innerHTML = renderRolePicker();
     attachHandlers();
@@ -2225,6 +2325,7 @@ function render(){
   if(state.tab==='print-test') html += renderPrintTest();
   if(state.tab==='bar-guide') html += renderAccordionList(BAR_GUIDE, "Everything on the bar menu, pulled straight from the real menu data — no prices, just what's on it.");
   if(state.tab==='bar-links') html += renderBarLinks();
+  if(state.tab==='cashier-links') html += renderCashierLinks();
 
   html += `</div>
   <div class="footnote">Zazzo's internal training tool ${trainee ? '· progress saves to this trainee\'s record' : ''}</div>
@@ -2262,11 +2363,11 @@ function renderRolePicker(){
           <div class="ht-sub">Drinks reference and a specialty-drinks test.</div>
         </div>
       </button>
-      <button class="home-tile" data-role="cashier">
+      <button class="home-tile" data-tab="cashier-links">
         <div class="ht-icon">💵</div>
         <div class="ht-body">
           <div class="ht-title">Cashier</div>
-          <div class="ht-sub">Coming soon.</div>
+          <div class="ht-sub">Carryout menu test — preview or send.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="forms">
@@ -2517,7 +2618,7 @@ function attachSignInHandlers(){
 }
 
 const PARENT_TAB = {
-  newhire:'home', 'active-hires':'home', 'completed-hires':'home', print:'home', forms:'home',
+  newhire:'home', 'active-hires':'home', 'completed-hires':'home', print:'home', forms:'home', 'cashier-links':'home',
   'trainee-hub':'active-hires',
   schedule:'trainee-hub', guides:'trainee-hub', programs:'trainee-hub',
   testing:'trainee-hub', results:'trainee-hub', 'bar-guide':'trainee-hub',
@@ -3068,6 +3169,19 @@ function renderTraineeHub(){
   <button class="newset-btn" id="mark-complete-btn" style="margin-top:18px; width:100%;">Mark Training Complete</button>`;
 }
 
+function renderCashierLinks(){
+  const lockParam = trainee ? `&tname=${encodeURIComponent(trainee.name)}` : '';
+  let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">${trainee ? `This link is locked to ${escapeHtml(trainee.name)} — their name will already be filled in and can't be changed.` : 'Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.'}</div>`;
+  html += `<div class="quiz-card">
+    <div class="quiz-cat">Cashier Test</div>
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button type="button" class="link-preview-btn" data-previewcashier="1" style="flex:1;">Preview</button>
+      <button type="button" class="link-copy-btn" data-copylink="${window.location.origin}${window.location.pathname}?ctest=1${lockParam}" style="flex:1;">Copy</button>
+    </div>
+  </div>`;
+  return html;
+}
+
 function renderBarLinks(){
   const lockParam = trainee ? `&tname=${encodeURIComponent(trainee.name)}` : '';
   let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">${trainee ? `This link is locked to ${escapeHtml(trainee.name)} — their name will already be filled in and can't be changed.` : 'Preview opens the questions right here in the app — nothing submits. Copy grabs the real link and copies it, ready to text.'}</div>`;
@@ -3115,6 +3229,41 @@ function renderPreviewTest(){
       html += `<div class="quiz-card"><div class="quiz-cat">Short Answer</div>
         <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
       </div>`;
+    });
+    return html;
+  }
+
+  if(state.previewCashier){
+    const set = buildTestSetCashier();
+    let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
+    set.mc.forEach(q=>{
+      html += `<div class="mcq">
+        <div class="mcq-cat">${q.cat}</div>
+        <div class="mcq-prompt">${q.prompt}</div>`;
+      q.options.forEach(opt=>{ html += `<div class="mcopt">${opt}</div>`; });
+      html += `</div>`;
+    });
+    (set.dynamicFixed||[]).forEach(q=>{
+      if(q.matching){
+        html += `<div class="quiz-card">
+          <div class="quiz-cat">${q.cat}</div>
+          <div class="qtext" style="margin-bottom:10px;">Match each item to its description.</div>
+          ${q.instructions ? `<div class="qtext" style="margin-bottom:10px; font-style:italic; color:var(--muted);">${q.instructions}</div>` : ''}`;
+        q.names.forEach((name,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${name}</div>`; });
+        html += `<div style="background:var(--bg); border-radius:10px; padding:12px 14px; margin-top:10px; font-size:13px; line-height:1.6;">`;
+        q.descs.forEach((desc,pos)=>{ html += `<b>${q.letters[pos]}.</b> ${desc}<br>`; });
+        html += `</div></div>`;
+      } else if(q.ordering){
+        html += `<div class="quiz-card">
+          <div class="quiz-cat">${q.cat}</div>
+          <div class="qtext" style="margin-bottom:10px;">Put these steps in the correct order.</div>`;
+        q.steps.forEach((step,i)=>{ html += `<div style="font-size:14px; margin-bottom:6px;">${i+1}. ${step}</div>`; });
+        html += `</div>`;
+      } else {
+        html += `<div class="quiz-card"><div class="quiz-cat">${q.cat}</div>
+          <div class="qtext" style="white-space:pre-wrap;">${q.prompt}</div>
+        </div>`;
+      }
     });
     return html;
   }
@@ -3591,6 +3740,297 @@ let bartenderMcAnswers = {};
 let bartenderFixedAnswers = {};
 let bartenderLeaveTimer = null;
 let bartenderFailReason = '';
+
+let cashierTestPhase = 'gate';
+let cashierTraineeName = lockedTraineeName || '';
+let cashierGateAgreed = false;
+let cashierDeck = null;
+let cashierDynamic = null;
+let cashierMcAnswers = {};
+let cashierFixedAnswers = {};
+let cashierFailReason = '';
+let cashierLeaveTimer = null;
+let cashierGateTapCount = 0;
+let cashierGateTapTimer = null;
+
+function cashierHandleLeavePage(){
+  if(cashierTestPhase !== 'testing') return;
+  if(cashierLeaveTimer) return;
+  cashierLeaveTimer = setTimeout(()=>{
+    cashierLeaveTimer = null;
+    if(cashierTestPhase !== 'testing') return;
+    cashierTestPhase = 'failed';
+    cashierFailReason = `This session has been canceled. Before starting, you acknowledged that this page needed to stay open for the full test. This link is now expired — please contact your manager for a new one.`;
+    submitCashierTestResult('failed_left_page');
+    document.removeEventListener('visibilitychange', cashierOnVisibilityChange);
+    render();
+  }, 3000);
+}
+function cashierHandleReturn(){ if(cashierLeaveTimer){ clearTimeout(cashierLeaveTimer); cashierLeaveTimer = null; } }
+function cashierOnVisibilityChange(){ if(document.hidden) cashierHandleLeavePage(); else cashierHandleReturn(); }
+
+function renderCashierTest(){
+  if(cashierTestPhase === 'gate'){
+    return `<div class="focused-wrap" style="position:relative;">
+      <div id="cashier-gate-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
+      <div class="focused-head">
+        <h1>Zazzo's</h1>
+        <div class="sub">Cashier Test</div>
+      </div>
+      <div class="gate-card">
+        <div class="ticket-obj" style="margin-bottom:0;">${lockedTraineeName ? 'Confirm it\'s you, then begin.' : 'Enter your name to begin.'}</div>
+        <input class="name-input" id="cashier-name-input" type="text" placeholder="Your full name" value="${escapeHtml(cashierTraineeName)}" ${lockedTraineeName ? 'readonly style="margin-top:14px; background:var(--bg); color:var(--muted);"' : 'style="margin-top:14px;"'}>
+        <div class="policy-box">
+          Once you tap "Start Test," please stay on this screen until you submit. If you switch to another app, lock your phone, or open a different tab, the test will end automatically and won't count as completed — so grab a quiet moment before you begin. Good luck!
+        </div>
+        <label style="display:flex; align-items:center; gap:10px; margin:14px 0; cursor:pointer;">
+          <div class="gate-check ${cashierGateAgreed?'on':''}" id="cashier-gate-agree-check"></div>
+          <span style="font-size:14px;">I understand and agree to stay on this page for the full test.</span>
+        </label>
+        <button class="start-btn" id="start-cashier-test-btn" ${(cashierTraineeName.trim() && cashierGateAgreed) ? '' : 'disabled'}>Start Test</button>
+      </div>
+    </div>`;
+  }
+  if(cashierTestPhase === 'failed'){
+    return `<div class="focused-wrap">
+      <div class="end-screen fail">
+        <div class="icon">🚫</div>
+        <h2>Test Session Closed</h2>
+        <p>${escapeHtml(cashierFailReason)}</p>
+      </div>
+    </div>`;
+  }
+  if(cashierTestPhase === 'submitted'){
+    return `<div class="focused-wrap">
+      <div class="end-screen">
+        <div class="icon">✅</div>
+        <h2>Test submitted</h2>
+        <p>Thanks, ${escapeHtml(cashierTraineeName)} — your Cashier test has been recorded. You can close this page now.</p>
+      </div>
+    </div>`;
+  }
+
+  let answered=0;
+  cashierDeck.forEach(q=>{ if(cashierMcAnswers[q.id]) answered++; });
+
+  let html = `<div class="focused-wrap" style="position:relative;">
+    <div id="cashier-testing-taptarget" style="position:absolute; top:10px; right:16px; font-size:11px; font-weight:700; color:#d8d5cc; letter-spacing:0.5px; padding:6px; user-select:none;">Za</div>
+    <div class="focused-head">
+      <h1>Zazzo's</h1>
+      <div class="sub">Cashier Test — ${escapeHtml(cashierTraineeName)}</div>
+    </div>`;
+
+  cashierDeck.forEach(q=>{
+    const selected = cashierMcAnswers[q.id];
+    html += `<div class="mcq">
+      <div class="mcq-cat">${q.cat}</div>
+      <div class="mcq-prompt">${q.prompt}</div>`;
+    q.options.forEach(opt=>{
+      let cls = 'mcopt';
+      if(selected){
+        if(opt===q.correct) cls += ' correct';
+        else if(opt===selected) cls += ' wrong';
+      }
+      html += `<button class="${cls}" ${selected?'disabled':''} data-cashieropt="${q.id}" data-cashierval="${encodeURIComponent(opt)}">${opt}</button>`;
+    });
+    html += `</div>`;
+  });
+
+  (cashierDynamic||[]).forEach((q,qi)=>{
+    if(q.matching){
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${q.cat}</div>
+        <div class="qtext" style="margin-bottom:10px;">Match each item to its description. Write the matching letter in the box.</div>
+        ${q.instructions ? `<div class="qtext" style="margin-bottom:10px; font-style:italic; color:var(--muted);">${escapeHtml(q.instructions)}</div>` : ''}`;
+      q.names.forEach((name,itemIdx)=>{
+        const key = `dyn-${qi}-${itemIdx}`;
+        const val = cashierFixedAnswers[key] || '';
+        html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <div style="flex:1; font-size:14px;">${itemIdx+1}. ${escapeHtml(name)}</div>
+          <input class="letter-input" maxlength="1" data-cashierfixed="${key}" value="${escapeHtml(val)}" style="width:44px; height:36px; text-align:center; font-weight:700; font-size:15px; border:1.5px solid var(--hair); border-radius:8px;">
+        </div>`;
+      });
+      html += `<div style="background:var(--bg); border-radius:10px; padding:12px 14px; margin-top:12px; font-size:13px; line-height:1.6;">`;
+      q.descs.forEach((desc,pos)=>{ html += `<b>${q.letters[pos]}.</b> ${escapeHtml(desc)}<br>`; });
+      html += `</div></div>`;
+    } else if(q.ordering){
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${q.cat}</div>
+        <div class="qtext" style="margin-bottom:10px;">These steps are out of order. Write the correct step number (1–${q.steps.length}) in each box.</div>`;
+      q.steps.forEach((step,itemIdx)=>{
+        const key = `dyn-${qi}-${itemIdx}`;
+        const val = cashierFixedAnswers[key] || '';
+        html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <div style="flex:1; font-size:14px;">${escapeHtml(step)}</div>
+          <input class="letter-input" maxlength="2" data-cashierfixed="${key}" value="${escapeHtml(val)}" style="width:44px; height:36px; text-align:center; font-weight:700; font-size:15px; border:1.5px solid var(--hair); border-radius:8px;">
+        </div>`;
+      });
+      html += `</div>`;
+    } else {
+      const key = `dyn-${qi}`;
+      const ans = cashierFixedAnswers[key] || '';
+      html += `<div class="quiz-card">
+        <div class="quiz-cat">${q.cat}</div>
+        <div class="qrow">
+          <div class="qtext"><span style="white-space:pre-wrap;">${escapeHtml(q.prompt)}</span></div>
+          <textarea class="answer" placeholder="Answer…" data-cashierfixed="${key}">${ans}</textarea>
+        </div>
+      </div>`;
+    }
+  });
+
+  html += `<div class="score-bar" style="margin-top:6px;">
+    <div><div class="lbl">${answered}/${cashierDeck.length} multiple choice answered</div></div>
+  </div>
+  <button class="submit-btn" id="submit-cashier-test-btn">Submit Test</button>
+  </div>`;
+  return html;
+}
+
+async function submitCashierTestResult(status){
+  let mcScore = 0;
+  cashierDeck.forEach(q=>{ if(cashierMcAnswers[q.id]===q.correct) mcScore++; });
+  const payload = {
+    trainee_name: cashierTraineeName.trim(),
+    day: 0,
+    role: 'cashier',
+    status: status,
+    mc_score: mcScore,
+    mc_total: cashierDeck.length,
+    mc_answers: cashierMcAnswers,
+    fixed_answers: cashierFixedAnswers,
+    fail_reason: status==='failed_left_page' ? cashierFailReason : null
+  };
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/test_submissions`, {
+      method:'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  }catch(e){ console.error('cashier submit failed', e); }
+}
+
+function attachCashierTestHandlers(){
+  const nameInput = document.getElementById('cashier-name-input');
+  if(nameInput){
+    nameInput.addEventListener('input', ()=>{
+      cashierTraineeName = nameInput.value;
+      const btn = document.getElementById('start-cashier-test-btn');
+      if(btn) btn.disabled = !(cashierTraineeName.trim() && cashierGateAgreed);
+    });
+  }
+  const gateCheck = document.getElementById('cashier-gate-agree-check');
+  if(gateCheck){
+    gateCheck.addEventListener('click', ()=>{
+      cashierGateAgreed = !cashierGateAgreed;
+      gateCheck.classList.toggle('on', cashierGateAgreed);
+      const btn = document.getElementById('start-cashier-test-btn');
+      if(btn) btn.disabled = !(cashierTraineeName.trim() && cashierGateAgreed);
+    });
+  }
+  const startBtn = document.getElementById('start-cashier-test-btn');
+  if(startBtn){
+    startBtn.addEventListener('click', ()=>{
+      if(!(cashierTraineeName.trim() && cashierGateAgreed)) return;
+      const set = buildTestSetCashier();
+      cashierDeck = set.mc;
+      cashierDynamic = set.dynamicFixed;
+      cashierMcAnswers = {};
+      cashierFixedAnswers = {};
+      cashierTestPhase = 'testing';
+      document.addEventListener('visibilitychange', cashierOnVisibilityChange);
+      render();
+    });
+  }
+  const cashierGateTap = document.getElementById('cashier-gate-taptarget');
+  if(cashierGateTap){
+    cashierGateTap.addEventListener('click', ()=>{
+      cashierGateTapCount++;
+      if(cashierGateTapTimer) clearTimeout(cashierGateTapTimer);
+      cashierGateTapTimer = setTimeout(()=>{ cashierGateTapCount = 0; }, 3000);
+      if(cashierGateTapCount >= 7){
+        cashierGateTapCount = 0;
+        clearTimeout(cashierGateTapTimer);
+        if(!cashierTraineeName.trim()){ window.alert('Enter a name first.'); return; }
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          const set = buildTestSetCashier();
+          cashierDeck = set.mc;
+          cashierDynamic = set.dynamicFixed;
+          cashierMcAnswers = {};
+          cashierFixedAnswers = {};
+          cashierDeck.forEach(q=>{ cashierMcAnswers[q.id] = q.correct; });
+          cashierDynamic.forEach((q,qi)=>{
+            if(q.matching){
+              q.names.forEach((name,itemIdx)=>{ cashierFixedAnswers[`dyn-${qi}-${itemIdx}`] = q.correctLetters[itemIdx]; });
+            } else if(q.ordering){
+              q.steps.forEach((step,itemIdx)=>{ cashierFixedAnswers[`dyn-${qi}-${itemIdx}`] = String(q.correctOrder[itemIdx]); });
+            } else {
+              cashierFixedAnswers[`dyn-${qi}`] = q.answer;
+            }
+          });
+          await submitCashierTestResult('completed');
+          cashierTestPhase = 'submitted';
+          render();
+        })();
+      }
+    });
+  }
+  const cashierTestingTap = document.getElementById('cashier-testing-taptarget');
+  if(cashierTestingTap){
+    cashierTestingTap.addEventListener('click', ()=>{
+      cashierGateTapCount++;
+      if(cashierGateTapTimer) clearTimeout(cashierGateTapTimer);
+      cashierGateTapTimer = setTimeout(()=>{ cashierGateTapCount = 0; }, 3000);
+      if(cashierGateTapCount >= 7){
+        cashierGateTapCount = 0;
+        clearTimeout(cashierGateTapTimer);
+        const pin = window.prompt('Manager PIN required to auto-submit a perfect score:');
+        if(pin !== '1233'){ window.alert('Incorrect PIN.'); return; }
+        (async ()=>{
+          cashierDeck.forEach(q=>{ cashierMcAnswers[q.id] = q.correct; });
+          (cashierDynamic||[]).forEach((q,qi)=>{
+            if(q.matching){
+              q.names.forEach((name,itemIdx)=>{ cashierFixedAnswers[`dyn-${qi}-${itemIdx}`] = q.correctLetters[itemIdx]; });
+            } else if(q.ordering){
+              q.steps.forEach((step,itemIdx)=>{ cashierFixedAnswers[`dyn-${qi}-${itemIdx}`] = String(q.correctOrder[itemIdx]); });
+            } else {
+              cashierFixedAnswers[`dyn-${qi}`] = q.answer;
+            }
+          });
+          await submitCashierTestResult('completed');
+          cashierTestPhase = 'submitted';
+          render();
+        })();
+      }
+    });
+  }
+  document.querySelectorAll('[data-cashieropt]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const qid = el.dataset.cashieropt;
+      const opt = decodeURIComponent(el.dataset.cashierval);
+      if(cashierMcAnswers[qid]) return;
+      cashierMcAnswers[qid] = opt;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-cashierfixed]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      cashierFixedAnswers[el.dataset.cashierfixed] = el.value;
+    });
+  });
+  const submitBtn = document.getElementById('submit-cashier-test-btn');
+  if(submitBtn){
+    submitBtn.addEventListener('click', ()=>{
+      if(cashierLeaveTimer) clearTimeout(cashierLeaveTimer);
+      document.removeEventListener('visibilitychange', cashierOnVisibilityChange);
+      cashierTestPhase = 'submitted';
+      submitCashierTestResult('completed');
+      render();
+    });
+  }
+}
 
 function renderBartenderTest(){
   if(bartenderTestPhase === 'gate'){
@@ -4430,6 +4870,15 @@ function attachHandlers(){
   document.querySelectorAll('[data-previewbar]').forEach(el=>{
     el.addEventListener('click', ()=>{
       state.previewBar = true;
+      state.previewCashier = false;
+      state.tab = 'preview-test';
+      render();
+    });
+  });
+  document.querySelectorAll('[data-previewcashier]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.previewCashier = true;
+      state.previewBar = false;
       state.tab = 'preview-test';
       render();
     });
