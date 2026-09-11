@@ -3269,6 +3269,9 @@ function renderPreviewTest(){
   }
 
   const day = state.previewDay;
+  if(!day || !TEST_DAY_CONFIG[day]){
+    return `<div class="callout" style="margin-top:0;">Nothing to preview — go back and tap a Preview button.</div>`;
+  }
   const set = buildTestSet(day);
   const cfg = TEST_DAY_CONFIG[day];
   let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">This is a preview — nothing here submits or saves. Just look, don't need to fill anything in.</div>`;
