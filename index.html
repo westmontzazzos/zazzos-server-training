@@ -2274,7 +2274,7 @@ function render(){
     </div>
     <div class="zazzos-word" id="${state.tab==='trainee-hub' ? 'secret-tap-target' : ''}">Zazzo's</div>`;
 
-  if(trainee){
+  if(trainee && state.tab!=='print-all-tests' && state.tab!=='print-test' && state.tab!=='print-packet'){
     const totalTasks = totalTaskCount();
     const done = doneTaskCount();
     const overallPct = Math.round((done/totalTasks)*100);
@@ -2290,6 +2290,8 @@ function render(){
       }).join('')}
     </div>
     <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>`;
+  } else if(state.tab==='print-all-tests' || state.tab==='print-test' || state.tab==='print-packet'){
+    html += `<h1 class="brand">Print</h1>`;
   } else if(state.role==='bartender'){
     html += `<h1 class="brand">Bartender</h1>
     <div class="brand-sub">Bar menu reference and the specialty-drinks test.</div>`;
