@@ -1346,6 +1346,7 @@ function getDaysForRole(){
     if(state.checks['needsBothShifts']) days.push(DAY6_BARTENDER);
     return days;
   }
+  if(state.role==='cashier') return [];
   return DAYS;
 }
 
@@ -2265,7 +2266,9 @@ function render(){
     return;
   }
 
-  const backTarget = (state.tab==='trainee-hub' && state.traineeSource) ? state.traineeSource : (PARENT_TAB[state.tab] || 'home');
+  const backTarget = (state.tab==='trainee-hub' && state.traineeSource) ? state.traineeSource
+    : (state.tab==='print-acc-item' && state.printAccReturnTab) ? state.printAccReturnTab
+    : (PARENT_TAB[state.tab] || 'home');
   let html = `
   <div class="hero">
     <div class="eyebrow">
@@ -2275,21 +2278,27 @@ function render(){
     <div class="zazzos-word" id="${state.tab==='trainee-hub' ? 'secret-tap-target' : ''}">Zazzo's</div>`;
 
   if(trainee && state.tab!=='print-all-tests' && state.tab!=='print-test' && state.tab!=='print-packet'){
-    const totalTasks = totalTaskCount();
-    const done = doneTaskCount();
-    const overallPct = Math.round((done/totalTasks)*100);
     const dayNums = getDaysForRole().map(d=>d.n);
-    html += `
-    <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
-    <div class="brand-sub">Everything for your first ${dayNums.length} days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)}</div>
-    <div class="progress-row">
-      ${dayNums.map(n=>{
-        const {total,done:dn} = dayDone(n);
-        const pct = total? Math.round((dn/total)*100):0;
-        return `<div class="slice"><i style="--fill:${pct}%"></i></div>`;
-      }).join('')}
-    </div>
-    <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>`;
+    if(dayNums.length === 0){
+      html += `
+      <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
+      <div class="brand-sub">Programs, POS guides, testing, and results live here. Started ${isoToDateStr(trainee.start_date)}</div>`;
+    } else {
+      const totalTasks = totalTaskCount();
+      const done = doneTaskCount();
+      const overallPct = totalTasks ? Math.round((done/totalTasks)*100) : 0;
+      html += `
+      <h1 class="brand">Welcome, ${escapeHtml(trainee.name.split(' ')[0])}</h1>
+      <div class="brand-sub">Everything for your first ${dayNums.length} days lives here — go at your own pace, and check things off as you go. Started ${isoToDateStr(trainee.start_date)}</div>
+      <div class="progress-row">
+        ${dayNums.map(n=>{
+          const {total,done:dn} = dayDone(n);
+          const pct = total? Math.round((dn/total)*100):0;
+          return `<div class="slice"><i style="--fill:${pct}%"></i></div>`;
+        }).join('')}
+      </div>
+      <div class="progress-caption">${done} of ${totalTasks} onboarding tasks checked off · ${overallPct}% complete</div>`;
+    }
   } else if(state.tab==='print-all-tests' || state.tab==='print-test' || state.tab==='print-packet'){
     html += `<h1 class="brand">Print</h1>`;
   } else if(state.role==='bartender'){
@@ -2315,6 +2324,7 @@ function render(){
   if(state.tab==='schedule') html += renderSchedule();
   if(state.tab==='guides') html += renderAccordionList(GUIDES, "These are the exact steps for the things that come up on every shift — ringing in an order, enrolling someone in loyalty, splitting a check. Come back to this tab as often as you need to.");
   if(state.tab==='programs') html += renderAccordionList(PROGRAMS, "Zazzo's runs three ongoing perks programs — VIP, Text Club, and Pizza Club. Guests will ask about all three, so here's how each one works and how to redeem it.");
+  if(state.tab==='print-acc-item') html += renderSingleAccPrint();
   if(state.tab==='test') html += renderTest();
   if(state.tab==='links') html += renderLinks();
   if(state.tab==='preview-test') html += renderPreviewTest();
@@ -2366,11 +2376,11 @@ function renderRolePicker(){
           <div class="ht-sub">Drinks reference and a specialty-drinks test.</div>
         </div>
       </button>
-      <button class="home-tile" data-tab="cashier-links">
+      <button class="home-tile" data-role="cashier">
         <div class="ht-icon">💵</div>
         <div class="ht-body">
           <div class="ht-title">Cashier</div>
-          <div class="ht-sub">Carryout menu test — preview or send.</div>
+          <div class="ht-sub">Carryout menu training and test.</div>
         </div>
       </button>
       <button class="home-tile" data-tab="forms">
@@ -2437,7 +2447,36 @@ function renderCashierHub(){
       <h1>Zazzo's</h1>
       <div class="sub">Cashier</div>
     </div>
-    <div class="callout" style="margin-top:0;">Not built yet — this is next, once Bartender's finished.</div>
+    <div class="home-tiles">
+      <button class="home-tile" data-tab="newhire">
+        <div class="ht-icon">🧑‍🍳</div>
+        <div class="ht-body">
+          <div class="ht-title">Start a New Hire</div>
+          <div class="ht-sub">Enter a name and start date to add them to Active New Hires.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="active-hires">
+        <div class="ht-icon">👥</div>
+        <div class="ht-body">
+          <div class="ht-title">Active New Hires</div>
+          <div class="ht-sub">Everyone currently in training — tap a name for programs, guides, and results.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="completed-hires">
+        <div class="ht-icon">✅</div>
+        <div class="ht-body">
+          <div class="ht-title">Completed Training</div>
+          <div class="ht-sub">Everyone who's finished — tap a name for their full history and results.</div>
+        </div>
+      </button>
+      <button class="home-tile" data-tab="print-all-tests">
+        <div class="ht-icon">🖨️</div>
+        <div class="ht-body">
+          <div class="ht-title">Print</div>
+          <div class="ht-sub">Printable Cashier test, straight from your browser.</div>
+        </div>
+      </button>
+    </div>
   </div>`;
 }
 
@@ -2637,6 +2676,9 @@ function tabBtn(id,label){
 
 function renderSchedule(){
   const days = getDaysForRole();
+  if(days.length === 0){
+    return `<div class="callout" style="margin-top:0;">There's no day-by-day schedule for this role.</div>`;
+  }
   const d = days.find(x=>x.n===state.day) || days[0];
   const introText = state.role==='bartender'
     ? `${days.length===6 ? 'Six' : 'Five'} days, one section at a time. Days 1–3 mirror Server training since bartenders serve food too. Day 4 is behind the bar instead of a dining section. Day 5${days.length===6?'/6':''} is hands-on bar training and the comprehensive test.`
@@ -2710,11 +2752,24 @@ function renderAccordionList(list, intro){
           <div class="acc-title">${g.title}</div>
           <div class="acc-meta">${g.meta}</div>
         </div>
+        ${open ? `<button type="button" class="link-preview-btn no-print" data-printaccitem="${g.id}" style="flex-shrink:0; padding:8px 14px; font-size:13px;">🖨️ Print</button>` : ''}
         <div class="acc-arrow">▾</div>
       </div>
       <div class="acc-body">${g.body}</div>
     </div>`;
   });
+  return html;
+}
+
+function renderSingleAccPrint(){
+  const g = state.printAccItem;
+  if(!g) return `<div class="callout" style="margin-top:0;">Nothing to print.</div>`;
+  let html = `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:20px;">Print This</button>`;
+  html += `<div class="print-doc">
+    <h1 style="font-family:'Libre Baskerville',serif;">${g.title} — Zazzo's</h1>
+    <p style="color:#666;">${g.meta}</p>
+    ${g.body}
+  </div>`;
   return html;
 }
 
@@ -3115,14 +3170,18 @@ function renderTraineeHub(){
   const total = totalTaskCount();
   const done = Object.values(trainee.checks||state.checks||{}).filter(Boolean).length;
   const pct = total? Math.round((done/total)*100) : 0;
-  let tiles = `
+  let tiles = '';
+  if(state.role !== 'cashier'){
+    tiles += `
     <button class="home-tile" data-tab="schedule">
       <div class="ht-icon">📋</div>
       <div class="ht-body">
         <div class="ht-title">Schedule</div>
         <div class="ht-sub">${done}/${total} onboarding tasks checked off · ${pct}%</div>
       </div>
-    </button>
+    </button>`;
+  }
+  tiles += `
     <button class="home-tile" data-tab="programs">
       <div class="ht-icon">🎟️</div>
       <div class="ht-body">
@@ -5087,6 +5146,18 @@ function attachHandlers(){
     el.addEventListener('click', ()=>{
       const k = el.dataset.acc;
       state.openAcc[k] = !state.openAcc[k];
+      render();
+    });
+  });
+  document.querySelectorAll('[data-printaccitem]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = el.dataset.printaccitem;
+      const item = [...PROGRAMS, ...GUIDES, ...BAR_GUIDE].find(g=>g.id===id);
+      if(!item) return;
+      state.printAccItem = item;
+      state.printAccReturnTab = state.tab;
+      state.tab = 'print-acc-item';
       render();
     });
   });
