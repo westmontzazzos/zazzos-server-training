@@ -3578,13 +3578,33 @@ function renderPrintPacket(){
 
 function renderAllTestsPrint(){
   const role = state.role || 'server';
-  let html = `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:20px;">Print This</button>`;
+  const picked = state.printPickedTest;
+
+  const testList = role==='bartender'
+    ? [{key:'2',label:'Day 2 Test'},{key:'3',label:'Day 3 Test'},{key:'4',label:'Day 4 Test'},{key:'5',label:'Day 5 Test'}]
+    : role==='cashier'
+    ? [{key:'cashier',label:'Cashier Test'}]
+    : [{key:'2',label:'Day 2 Test'},{key:'3',label:'Day 3 Test'},{key:'4',label:'Day 4 Test'}];
+
+  if(!picked){
+    let html = `<div class="callout" style="margin-top:0; margin-bottom:20px;">Pick a test to print.</div>`;
+    testList.forEach(t=>{
+      html += `<button class="home-tile" data-pickprinttest="${t.key}" style="width:100%; text-align:left; margin-bottom:12px;">
+        <div class="ht-icon">🖨️</div>
+        <div class="ht-body"><div class="ht-title">${t.label}</div></div>
+      </button>`;
+    });
+    return html;
+  }
+
+  let html = `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:12px;">Print This</button>
+  <button type="button" class="link-preview-btn no-print" id="print-choose-another-btn" style="width:100%; margin-bottom:20px;">← Choose a Different Test</button>`;
   html += `<div class="print-doc">`;
 
   function printDayTest(day, label){
     const set = buildTestSet(day);
     const cfg = TEST_DAY_CONFIG[day];
-    html += `<h1 style="font-family:'Libre Baskerville',serif; margin-top:32px;">${label} — Zazzo's</h1>
+    html += `<h1 style="font-family:'Libre Baskerville',serif;">${label} — Zazzo's</h1>
     <p>Name: _______________________  Date: _______________</p>`;
     set.mc.forEach((q,i)=>{
       html += `<p><b>${i+1}. (${q.cat})</b> ${q.prompt}</p><ul>`;
@@ -3616,13 +3636,12 @@ function renderAllTestsPrint(){
     });
   }
 
-  if(role === 'bartender'){
-    [2,3,4].forEach(d=>printDayTest(d, `Day ${d} Test`));
+  if(picked === '5' && role === 'bartender'){
     const bset = buildBartenderTestSet();
-    html += `<h1 style="font-family:'Libre Baskerville',serif; margin-top:32px;">Day 5 Test — Zazzo's</h1>
+    html += `<h1 style="font-family:'Libre Baskerville',serif;">Day 5 Test — Zazzo's</h1>
     <p>Name: _______________________  Date: _______________</p>`;
     (bset.fixed||[]).forEach((q,i)=>{ html += `<p><b>${i+1}.</b> ${q.prompt}</p><p>_________________________________________________</p>`; });
-  } else if(role === 'cashier'){
+  } else if(picked === 'cashier'){
     const cset = buildTestSetCashier();
     html += `<h1 style="font-family:'Libre Baskerville',serif;">Cashier Test — Zazzo's</h1>
     <p>Name: _______________________  Date: _______________</p>`;
@@ -3649,7 +3668,7 @@ function renderAllTestsPrint(){
       }
     });
   } else {
-    [2,3,4].forEach(d=>printDayTest(d, `Day ${d} Test`));
+    printDayTest(parseInt(picked), `Day ${picked} Test`);
   }
 
   html += `</div>`;
@@ -4861,7 +4880,7 @@ function attachFocusedHandlers(){
 
 function attachHandlers(){
   document.querySelectorAll('[data-tab]').forEach(el=>{
-    el.addEventListener('click', (e)=>{ e.preventDefault(); state.tab = el.dataset.tab; if(state.tab==='cashier-links') state.role = 'cashier'; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
+    el.addEventListener('click', (e)=>{ e.preventDefault(); state.tab = el.dataset.tab; if(state.tab==='cashier-links') state.role = 'cashier'; if(state.tab==='print-all-tests') state.printPickedTest = null; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
   });
   document.querySelectorAll('[data-homelink]').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -4964,6 +4983,11 @@ function attachHandlers(){
   document.querySelectorAll('[data-printtestday]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.printTestDay = parseInt(el.dataset.printtestday); render(); });
   });
+  document.querySelectorAll('[data-pickprinttest]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.printPickedTest = el.dataset.pickprinttest; render(); });
+  });
+  const chooseAnotherBtn = document.getElementById('print-choose-another-btn');
+  if(chooseAnotherBtn) chooseAnotherBtn.addEventListener('click', ()=>{ state.printPickedTest = null; render(); });
   document.querySelectorAll('[data-refreshresults]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.results = null; state.resultsLoading=false; render(); });
   });
