@@ -3221,6 +3221,14 @@ function renderTraineeHub(){
         <div class="ht-sub">${escapeHtml(trainee.name)}'s submitted tests and progress.</div>
       </div>
     </button>`;
+  tiles += `
+    <button class="home-tile" data-tab="print-packet">
+      <div class="ht-icon">🖨️</div>
+      <div class="ht-body">
+        <div class="ht-title">Print Packet</div>
+        <div class="ht-sub">Everything above, as one printable document.</div>
+      </div>
+    </button>`;
   return `<div class="home-tiles">${tiles}</div>
   ${state.role==='bartender' ? `<div class="quiz-card" style="margin-top:16px;">
     <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
@@ -3608,25 +3616,37 @@ function renderPrintPicker(){
 }
 
 function renderPrintPacket(){
+  const role = state.role || 'server';
   let html = `<button class="submit-btn no-print" id="print-now-btn" style="margin-bottom:20px;">Print This Packet</button>`;
   html += `<div class="print-doc">`;
-  html += `<h1 style="font-family:'Libre Baskerville',serif;">Zazzo's Server Training Packet</h1>`;
-  DAYS.forEach(d=>{
-    html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Day ${d.n} — ${d.title}</h2>
-    <p style="font-style:italic; color:#444;">${d.objective}</p>`;
-    d.sections.forEach(s=>{
-      html += `<h3 style="margin-top:14px;">${s.h} (${s.hrs})</h3><ul>`;
-      s.items.forEach(it=>{ html += `<li>${it}</li>`; });
-      html += `</ul>`;
+  const roleLabel = role==='bartender' ? 'Bartender' : role==='cashier' ? 'Cashier' : 'Server';
+  html += `<h1 style="font-family:'Libre Baskerville',serif;">Zazzo's ${roleLabel} Training Packet</h1>`;
+
+  if(role !== 'cashier'){
+    const days = role==='bartender' ? getDaysForRole() : DAYS;
+    days.forEach(d=>{
+      html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Day ${d.n} — ${d.title}</h2>
+      <p style="font-style:italic; color:#444;">${d.objective}</p>`;
+      d.sections.forEach(s=>{
+        html += `<h3 style="margin-top:14px;">${s.h} (${s.hrs})</h3><ul>`;
+        s.items.forEach(it=>{ html += `<li>${it}</li>`; });
+        html += `</ul>`;
+      });
+      if(d.note) html += `<p><b>Note:</b> ${d.note}</p>`;
+      if(d.testPrep) html += `<p><b>Study for tomorrow's test:</b> ${d.testPrep}</p>`;
+      if(d.final) html += `<p><b>End of Day ${d.n}:</b> ${d.final}</p>`;
     });
-    if(d.note) html += `<p><b>Note:</b> ${d.note}</p>`;
-    if(d.testPrep) html += `<p><b>Study for tomorrow's test:</b> ${d.testPrep}</p>`;
-    if(d.final) html += `<p><b>End of Day ${d.n}:</b> ${d.final}</p>`;
-  });
+  }
   html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">POS Guides</h2>`;
   GUIDES.forEach(g=>{
     html += `<h3>${g.title}</h3><div>${g.body}</div>`;
   });
+  if(role === 'bartender'){
+    html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Drinks Guide</h2>`;
+    BAR_GUIDE.forEach(g=>{
+      html += `<h3>${g.title}</h3><div>${g.body}</div>`;
+    });
+  }
   html += `<h2 style="font-family:'Libre Baskerville',serif; margin-top:28px;">Programs</h2>`;
   PROGRAMS.forEach(p=>{
     html += `<h3>${p.title}</h3><div>${p.body}</div>`;
