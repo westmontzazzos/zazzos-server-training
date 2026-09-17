@@ -3178,8 +3178,7 @@ function renderTraineeHub(){
   const done = Object.values(trainee.checks||state.checks||{}).filter(Boolean).length;
   const pct = total? Math.round((done/total)*100) : 0;
   let tiles = '';
-  if(state.role !== 'cashier'){
-    tiles += `
+  tiles += `
     <button class="home-tile" data-tab="schedule">
       <div class="ht-icon">📋</div>
       <div class="ht-body">
@@ -3187,7 +3186,6 @@ function renderTraineeHub(){
         <div class="ht-sub">${done}/${total} onboarding tasks checked off · ${pct}%</div>
       </div>
     </button>`;
-  }
   tiles += `
     <button class="home-tile" data-tab="programs">
       <div class="ht-icon">🎟️</div>
