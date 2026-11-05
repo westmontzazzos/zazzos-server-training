@@ -2276,6 +2276,7 @@ function render(){
 
   const backTarget = (state.tab==='trainee-hub' && state.traineeSource) ? state.traineeSource
     : (state.tab==='print-acc-item' && state.printAccReturnTab) ? state.printAccReturnTab
+    : (state.tab==='print-all-tests' && state.printAllReturn) ? state.printAllReturn
     : (PARENT_TAB[state.tab] || 'home');
   let html = `
   <div class="hero">
@@ -2342,7 +2343,7 @@ function render(){
   if(state.tab==='forms') html += renderFormsPicker();
   if(state.tab==='question-bank') html += renderQuestionBank();
   if(state.tab==='print-packet') html += renderPrintPacket();
-  if(state.tab==='print-test') html += renderPrintTest();
+  if(state.tab==='print-test') html += renderAllTestsPrint();
   if(state.tab==='print-all-tests') html += renderAllTestsPrint();
   if(state.tab==='print-schedule') html += renderPrintSchedule();
   if(state.tab==='bar-guide') html += renderAccordionList(BAR_GUIDE, "Everything on the bar menu, pulled straight from the real menu data — no prices, just what's on it.");
@@ -2476,7 +2477,7 @@ function renderCashierHub(){
           <div class="ht-sub">Everyone who's finished — tap a name for their full history and results.</div>
         </div>
       </button>
-      <button class="home-tile" data-tab="print-all-tests">
+      <button class="home-tile" data-tab="print">
         <div class="ht-icon">🖨️</div>
         <div class="ht-body">
           <div class="ht-title">Print</div>
@@ -3608,14 +3609,14 @@ function renderPrintPicker(){
       <div class="ht-icon">📦</div>
       <div class="ht-body">
         <div class="ht-title">Print the Packet</div>
-        <div class="ht-sub">All four days, POS guides, and programs — one clean document.</div>
+        <div class="ht-sub">${state.role==='cashier' ? 'POS guides and programs — one clean document.' : state.role==='bartender' ? 'All five days, POS guides, drinks guide, and programs — one clean document.' : 'All four days, POS guides, and programs — one clean document.'}</div>
       </div>
     </button>
-    <button class="home-tile" data-tab="print-test">
+    <button class="home-tile" data-tab="print-all-tests">
       <div class="ht-icon">📝</div>
       <div class="ht-body">
         <div class="ht-title">Print a Test</div>
-        <div class="ht-sub">Pick a day, get a paper version of that day's questions.</div>
+        <div class="ht-sub">Pick a test from the list, then print it.</div>
       </div>
     </button>
   </div>`;
@@ -4988,7 +4989,7 @@ function attachFocusedHandlers(){
 
 function attachHandlers(){
   document.querySelectorAll('[data-tab]').forEach(el=>{
-    el.addEventListener('click', (e)=>{ e.preventDefault(); state.tab = el.dataset.tab; if(state.tab==='cashier-links') state.role = 'cashier'; if(state.tab==='print-all-tests') state.printPickedTest = null; if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
+    el.addEventListener('click', (e)=>{ e.preventDefault(); const prevTab = state.tab; state.tab = el.dataset.tab; if(state.tab==='cashier-links') state.role = 'cashier'; if(state.tab==='print-all-tests'){ state.printPickedTest = null; state.printAllReturn = prevTab; } if(state.tab==='results'){ state.results=null; state.trainees=null; } render(); });
   });
   document.querySelectorAll('[data-homelink]').forEach(el=>{
     el.addEventListener('click', ()=>{
